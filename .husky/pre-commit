@@ -1,0 +1,3 @@
+task lint-staged duplicate-check
+
+git add .

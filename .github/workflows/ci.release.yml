@@ -1,0 +1,133 @@
+name: CI » Release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag for the release (e.g., v1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the release (e.g., v1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+      skip_validation:
+        description: 'Skip build validation before release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # Optional validation when manually triggered
+  validate:
+    if: github.event_name == 'workflow_dispatch' && !inputs.skip_validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: ./.github/actions/setup-tools
+
+      - name: Lint Code
+        run: |
+          task lint
+        shell: bash
+
+      - name: Test Code
+        run: |
+          task test
+        shell: bash
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: always() && (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+    permissions:
+      contents: write
+    steps:
+      - name: Debug inputs.prerelease
+        run: |
+          echo "tag = ${{ inputs.tag }}"
+          echo "prerelease = ${{ inputs.prerelease }}"
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup Toolchain
+        uses: ./.github/actions/setup-tools
+
+      - name: Read changelog
+        id: changelog
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            echo "Using generated CHANGELOG.md from bumpalicious"
+          else
+            echo "CHANGELOG.md not found, will use tag as body"
+            echo "Release ${{ inputs.tag }}" > CHANGELOG.md
+          fi
+
+      - name: Build Release Binaries
+        run: |
+          task build
+        shell: bash
+
+      - name: Create distribution packages
+        run: |
+          mkdir -p release-assets
+
+          # Create Bash artifact (greeter.sh + cli.sh) if files exist
+          if [ -f src/greeter.sh ] && [ -f src/cli.sh ]; then
+            mkdir -p bash-artifact
+            cp src/greeter.sh bash-artifact/
+            cp src/cli.sh bash-artifact/
+            cp README.md bash-artifact/ 2>/dev/null || echo "# Bash Greeter" > bash-artifact/README.md
+            tar -czf release-assets/generic-template-bash-${{ inputs.tag }}.tar.gz \
+                -C bash-artifact .
+            echo "✓ Created Bash artifact"
+          else
+            echo "⚠ Skipping Bash artifact (source files not found)"
+          fi
+
+          # Create PowerShell artifact (greeter.ps1 + cli.ps1) if files exist
+          if [ -f src/greeter.ps1 ] && [ -f src/cli.ps1 ]; then
+            mkdir -p powershell-artifact
+            cp src/greeter.ps1 powershell-artifact/
+            cp src/cli.ps1 powershell-artifact/
+            cp README.md powershell-artifact/ 2>/dev/null || echo "# PowerShell Greeter" > powershell-artifact/README.md
+            tar -czf release-assets/generic-template-powershell-${{ inputs.tag }}.tar.gz \
+                -C powershell-artifact .
+            echo "✓ Created PowerShell artifact"
+          else
+            echo "⚠ Skipping PowerShell artifact (source files not found)"
+          fi
+
+          echo ""
+          echo "Release assets created:"
+          ls -lah release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: Release ${{ inputs.tag }}
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

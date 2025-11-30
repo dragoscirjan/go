@@ -1,0 +1,80 @@
+# Code with AI
+.cwai
+.github/prompts
+
+# Go workspace
+go.work
+
+# Dependency directories
+vendor/
+
+# Logs
+logs
+*.log
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage files
+*.out
+coverage.html
+
+# Node modules
+node_modules/
+
+# Cache folders
+.cache/
+.task/
+
+# Build Folders
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Optional eslint cache
+.eslintcache
+
+# Archives
+*.tgz
+*.tar*
+*.zip
+
+# dotenv environment variable files
+.env
+.env.*
+!.env.example
+
+# Jscpd reports
+.jscpd/html/
+
+# PSScriptAnalyzer
+.github/scripts/
+
+# TypeDoc
+docs-html/
+
+# mise local configs
+.mise.local.toml
+mise.local.toml
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+
+# OS
+.DS_Store
+Thumbs.db

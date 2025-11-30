@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+jobs:
+  test-scaffold:
+    name: Test Scaffold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Test bootstrap help
+        run: uvx --from . bootstrap --help
+      - name: Test bootstrap execution
+        run: uvx --from . bootstrap ./test-project
+      - name: Test bootstrap execution (remote)
+        run: uvx --from git+${{ github.server_url }}/${{ github.repository }}.git bootstrap ./test-project-remote
+
+  # Validation & Build matrix for different platforms
+  build:
+    name: Build
+    if: |
+      !contains(github.event.head_commit.message, 'version_bump/')
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    uses: ./.github/workflows/ci.build.yml
+    with:
+      os: ${{ matrix.os }}
+
+  # Version bump (only on main branch push, uses conventional commits)
+  version-bump:
+    name: Bump Version
+    if: |
+      always()
+      && github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+      && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    needs: [build]
+    uses: ./.github/workflows/ci.version.yml
+    permissions:
+      contents: write
+      pull-requests: write
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  # Version detect (detect version values, in case they were changed)
+  version-detect:
+    name: Detect Version
+    needs: [version-bump]
+    runs-on: ubuntu-latest
+    if: always()
+    outputs:
+      tag: ${{ steps.extract.outputs.tag }}
+      version: ${{ steps.extract.outputs.version }}
+    steps:
+      - name: Download version artifact
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: version-output
+          path: version-output
+
+      - name: Extract version data
+        id: extract
+        continue-on-error: true
+        run: |
+          if [ -f version-output/version.json ]; then
+            TAG=$(jq -r '.tag' version-output/version.json)
+            VERSION=$(jq -r '.version' version-output/version.json)
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Extracted tag: $TAG"
+            echo "Extracted version: $VERSION"
+          else
+            echo "⚠ version.json not found in artifact - skipping"
+            echo "tag=" >> $GITHUB_OUTPUT
+            echo "version=" >> $GITHUB_OUTPUT
+          fi
+
+  # Release (only on main branch push after version bump)
+  release:
+    name: Create Release
+    if: |
+      always()
+      && needs.version-detect.outputs.tag != ''
+    needs: [version-detect]
+    uses: ./.github/workflows/ci.release.yml
+    permissions:
+      contents: write
+    with:
+      tag: ${{ needs.version-detect.outputs.tag }}
+      prerelease: false
