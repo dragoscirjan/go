@@ -1,0 +1,22 @@
+{
+  "servers": {
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/",
+      "type": "http"
+    },
+    "js-language-server": {
+      "command": "${userHome}/go/bin/mcp-language-server",
+      "args": ["--workspace", "${workspaceFolder}", "--lsp", "typescript-language-server", "--", "--stdio"],
+      "env": {
+        "LOG_LEVEL": "DEBUG"
+      }
+    },
+    "py-language-server": {
+      "command": "${userHome}/go/bin/mcp-language-server",
+      "args": ["--workspace", "${workspaceFolder}", "--lsp", "pyright-langserver", "--", "--stdio"],
+      "env": {
+        "LOG_LEVEL": "DEBUG"
+      }
+    }
+  }
+}

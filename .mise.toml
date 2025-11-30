@@ -1,0 +1,66 @@
+[settings]
+# TODO: need experimental mode to support lock file -> can be solved using mise.local.toml
+# TRICKY:
+# This one breaks tools.http:llvm/llvm-project installation due to mise bug probably
+# experimental = true
+# This one I needs to be tested; but I haven't seen it working last time
+lockfile = true
+# TRICKYend
+
+############################################################################
+# Tools Configuration                                                      #
+############################################################################
+
+[tools]
+
+# ==========================================================================
+# Compilers
+# ==========================================================================
+
+# TODO: add here any build tool you may need (e.g. cmake, make, ninja, etc.)
+
+# ==========================================================================
+# Other Tools
+# ==========================================================================
+
+# Node.js for jscpd & eslint
+#
+[tools.node]
+version = "latest"
+
+# Python and package manager
+#
+[tools.python]
+version = "3.11" # Will install 3.11 or above based on availability
+[tools.uv]
+version = "latest"
+
+# TODO: add here any build tool dependencies you may need that you cannot add to a config file (e.g. cargo:cargo-audit, npm:jscpd, etc.)
+
+# https://github.com/koalaman/shellcheck/releases
+# e.g. https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.x86_64.tar.xz
+#
+[tools."github:koalaman/shellcheck"]
+version = "0.11.0"
+
+[tools."github:koalaman/shellcheck".platforms]
+linux-x64 = { asset_pattern = "shellcheck-*.linux.x86_64.tar.xz" }
+macos-arm64 = { asset_pattern = "shellcheck-*.darwin.aarch64.tar.xz" }
+windows-x64 = { asset_pattern = "shellcheck-*.zip" }
+
+# https://github.com/PowerShell/PowerShell/releases
+# e.g. https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/powershell-7.5.4-osx-arm64.tar.gz
+#
+[tools."github:PowerShell/PowerShell"]
+version = "latest"
+
+[tools."github:PowerShell/PowerShell".platforms]
+linux-x64 = { asset_pattern = "powershell-*-linux-x64.tar.gz" }
+macos-arm64 = { asset_pattern = "powershell-*-osx-arm64.tar.gz" }
+windows-x64 = { asset_pattern = "PowerShell-*-win-x64.zip" }
+
+############################################################################
+# Hooks                                                    #
+############################################################################
+[hooks]
+postinstall = "{% if os() != 'windows' %}chmod -R 755 $(mise bin-paths github:PowerShell/PowerShell)/pwsh; echo 'chown -R 755 pwsh'{% endif %}"

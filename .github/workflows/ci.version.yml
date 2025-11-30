@@ -1,0 +1,90 @@
+name: CI » Version
+
+on:
+  workflow_call:
+    secrets:
+      GH_TOKEN:
+        description: 'GitHub token for version bump and PR creation'
+        required: true
+    outputs:
+      version:
+        description: 'The version tag that was created (e.g., 1.2.3)'
+        value: ${{ jobs.version.outputs.version }}
+      tag:
+        description: 'The version tag (alias for version)'
+        value: ${{ jobs.version.outputs.version }}
+  workflow_dispatch:
+    inputs:
+      skip_validation:
+        description: 'Skip build validation before versioning'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # Optional validation when manually triggered
+  validate:
+    if: github.event_name == 'workflow_dispatch' && !inputs.skip_validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-tools
+
+      - name: Lint Code
+        run: |
+          task lint
+        shell: bash
+
+      - name: Test Code
+        run: |
+          task test
+        shell: bash
+
+      - name: Test Code
+        run: |
+          task build
+        shell: bash
+
+  version:
+    runs-on: ubuntu-latest
+    needs: [validate]
+    if: always() && (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+      version: ${{ steps.bump.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Bump version with Bumpalicious
+        id: bump
+        uses: dragoscops/bumpalicious@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr: 'true'
+          workspaces: .:text
+
+      - name: Output new version
+        run: |
+          echo "New version tag: ${{ steps.bump.outputs.tag }}"
+          echo "New version: ${{ steps.bump.outputs.version }}"
+
+          # Create JSON output file
+          mkdir -p version-output
+          cat > version-output/version.json << EOF
+          {
+            "tag": "${{ steps.bump.outputs.tag }}",
+            "version": "${{ steps.bump.outputs.version }}"
+          }
+          EOF
+
+          cat version-output/version.json
+
+      - name: Upload version output
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-output
+          path: version-output/version.json
+          retention-days: 1

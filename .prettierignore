@@ -1,0 +1,25 @@
+# Ignore files that don't need formatting
+*.lock
+*.log
+*.ps1
+*.py
+*.sh
+.PSScriptAnalyzerSettings.psd1
+.editorconfig
+.eslintignore
+.gitattributes
+.github/
+.gitignore
+.husky/
+.jscpd/
+.mise.lock
+.prettierignore
+.ruff_cache/
+.shellcheckrc
+.venv/
+LICENSE
+VERSION
+coverage/
+dist/
+docs-html/
+package-lock.json

@@ -1,0 +1,109 @@
+name: 'Setup Development Tools'
+description: 'Install Task, mise, and project tools with caching'
+inputs:
+  refresh-deps:
+    description: 'Force refresh dependencies by bypassing cache'
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+  # === task ===
+  - name: Setup Task
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    uses: go-task/setup-task@v1
+
+  # === mise ===
+  - name: Install Mise (Darwin & Linux)
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    if: ${{ runner.os != 'Windows' }}
+    shell: bash
+    run: |
+      curl https://mise.run | sh
+      # TODO: make sure the command works for both Linux and MacOS
+      # echo "eval \"\$(/Users/runner/.local/bin/mise activate bash)\"" >> ~/.bashrc
+      mise activate
+      mise --version
+
+  - name: Install Mise (Windows)
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    if: ${{ runner.os == 'Windows' }}
+    shell: pwsh
+    run: |
+      choco install mise -y --force --no-progress
+
+  - name: Update Mise
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+    if: ${{ runner.os == 'Windows' }}
+    shell: bash
+    run: |
+      mise self-update
+      mise --version
+
+  # === mise === cache ===
+  - uses: actions/cache@v4
+    continue-on-error: true
+    if: ${{ runner.os != 'Windows' }}
+    with:
+      key: generic-${{ runner.os }}-${{ runner.arch }}-mise-${{ hashFiles('.mise.lock') }}
+      restore-keys: |
+        generic-${{ runner.os }}-${{ runner.arch }}-mise-
+      path: |
+        ~/.local/share/mise
+        ~/.cache/mise
+
+  - uses: actions/cache@v4
+    continue-on-error: true
+    if: ${{ runner.os == 'Windows' }}
+    with:
+      key: generic-${{ runner.os }}-${{ runner.arch }}-mise-${{ hashFiles('.mise.lock') }}
+      restore-keys: |
+        generic-${{ runner.os }}-${{ runner.arch }}-mise-
+      path: |
+        ~\AppData\Local\mise\installs
+        ~\.cache\mise
+
+  # === python === cache ===
+  - uses: actions/cache@v4
+    continue-on-error: true
+    if: ${{ runner.os == 'Windows' }}
+    with:
+      key: generic-${{ runner.os }}-${{ runner.arch }}-uv-${{ hashFiles('uv.lock') }}
+      restore-keys: |
+        generic-${{ runner.os }}-${{ runner.arch }}-uv-
+      path: |
+        .venv
+
+  # === node === cache ===
+  - uses: actions/cache@v4
+    continue-on-error: true
+    if: ${{ runner.os == 'Windows' }}
+    with:
+      key: generic-${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
+      restore-keys: |
+        ${{ runner.os }}-${{ runner.arch }}-node-
+      path: |
+        node_modules
+
+  # === sync deps ===
+  - name: Sync Dependencies
+    if: ${{ inputs.refresh-deps == 'false' }}
+    shell: bash
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      MISE_HTTP_TIMEOUT: 600
+      PYTHONIOENCODING: utf-8
+    run: task deps:sync
+
+  - name: Refresh Dependencies
+    if: ${{ inputs.refresh-deps == 'true' }}
+    shell: bash
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      MISE_HTTP_TIMEOUT: 600
+      PYTHONIOENCODING: utf-8
+    run: task deps:refresh

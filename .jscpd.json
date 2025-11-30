@@ -1,0 +1,11 @@
+{
+  "threshold": 1,
+  "reporters": ["html", "console", "badge"],
+  "ignore": ["node_modules/**", "dist/**", "coverage/**", "**/*.min.js", "**/*.config.js", "**/*.config.mjs"],
+  "absolute": true,
+  "gitignore": true,
+  "silent": false,
+  "blame": true,
+  "cache": true,
+  "output": ".jscpd"
+}

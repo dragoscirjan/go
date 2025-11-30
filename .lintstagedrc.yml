@@ -1,0 +1,10 @@
+'*.{json,md,toml,yaml,yml}':
+  - task prettier -- --write
+  - task eslint -- --fix
+'*.sh':
+  - task shlint_py -- --fix
+'*.ps1':
+  - task pwshlint_py -- --fix
+'*.py':
+  - task ruff -- format
+  - task pylint --
