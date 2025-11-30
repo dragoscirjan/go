@@ -65,7 +65,7 @@ jobs:
     steps:
       - name: Download version artifact
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: version-output
           path: version-output
