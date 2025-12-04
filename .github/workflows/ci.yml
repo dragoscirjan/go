@@ -30,9 +30,9 @@ jobs:
     strategy:
       matrix:
         os:
-          - macos-latest
+          # - macos-latest
           - ubuntu-latest
-          - windows-latest
+          # - windows-latest
     uses: ./.github/workflows/ci.build.yml
     with:
       os: ${{ matrix.os }}

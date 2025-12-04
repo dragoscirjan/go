@@ -86,7 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       # duplicate check only requires node setup
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v6
 
       - name: Run duplicate check
         run: |
