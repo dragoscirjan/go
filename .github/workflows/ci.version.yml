@@ -65,7 +65,7 @@ jobs:
         id: bump
         uses: dragoscops/bumpalicious@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GH_TOKEN }}
           pr: 'true'
           workspaces: .:go
 
