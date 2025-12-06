@@ -21,6 +21,9 @@ on:
         type: boolean
         default: false
 
+env:
+  ACTIONS_STEP_DEBUG: true
+
 jobs:
   # Optional validation when manually triggered
   validate:
