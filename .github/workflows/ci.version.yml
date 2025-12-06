@@ -4,7 +4,7 @@ on:
   workflow_call:
     secrets:
       GH_TOKEN:
-        description: 'GitHub token for version bump and PR creation'
+        description: GitHub token for version bump and PR creation
         required: true
     outputs:
       version:
