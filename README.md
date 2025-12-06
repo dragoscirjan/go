@@ -27,9 +27,6 @@
 git clone https://github.com/templ-project/go.git my-go-project
 cd my-go-project
 
-# Install development tools
-mise install
-
 # Install dependencies
 task deps:sync
 
