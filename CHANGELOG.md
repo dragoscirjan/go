@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.16 (2025-12-06)
+
+### Bug Fixes
+
+* debugging bumpalicious failure 1765042504 ([7ae5753](https://github.com/templ-project/go/commit/7ae5753d705630ee277f3959b0f019c41988cfd3))
+
 ## 0.0.15 (2025-11-23)
 
 ### Bug Fixes
