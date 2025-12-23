@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 (2025-12-23)
+
+### Bug Fixes
+
+* use shell variable for .exe extension in cross-compilation build ([7a6ae78](https://github.com/templ-project/go/commit/7a6ae78758a46a68f8ec8c2ea006c8ba63d0c4ae))
+
 ## 0.1.0 (2025-12-23)
 
 ### Features
