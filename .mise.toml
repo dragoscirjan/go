@@ -40,9 +40,11 @@ version = "latest"
 
 # golangci-lint for comprehensive Go linting
 # https://github.com/golangci/golangci-lint/releases
+# NOTE: checksum disabled to avoid GitHub API rate limits in CI
 #
 [tools."github:golangci/golangci-lint"]
 version = "latest"
+checksum = false
 
 [tools."github:golangci/golangci-lint".platforms]
 linux-x64 = { asset_pattern = "golangci-lint-*-linux-amd64.tar.gz" }
@@ -58,9 +60,11 @@ version = "v1.12.0"
 
 # https://github.com/koalaman/shellcheck/releases
 # e.g. https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.x86_64.tar.xz
+# NOTE: checksum disabled to avoid GitHub API rate limits in CI
 #
 [tools."github:koalaman/shellcheck"]
 version = "0.11.0"
+checksum = false
 
 [tools."github:koalaman/shellcheck".platforms]
 linux-x64 = { asset_pattern = "shellcheck-*.linux.x86_64.tar.xz" }
@@ -71,9 +75,11 @@ windows-x64 = { asset_pattern = "shellcheck-*.zip" }
 # e.g. https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/powershell-7.5.4-osx-arm64.tar.gz
 # NOTE: mise extraction may lose the Modules/ folder structure.
 #       The postinstall hook runs .scripts/fix-mise-pwsh to re-extract properly.
+# NOTE: checksum disabled to avoid GitHub API rate limits in CI
 #
 [tools."github:PowerShell/PowerShell"]
 version = "latest"
+checksum = false
 
 [tools."github:PowerShell/PowerShell".platforms]
 linux-x64 = { asset_pattern = "powershell-*-linux-x64.tar.gz" }
