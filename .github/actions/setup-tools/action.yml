@@ -111,6 +111,7 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        MISE_GITHUB_TOKEN: ${{ github.token }}
         MISE_HTTP_TIMEOUT: 600
         PYTHONIOENCODING: utf-8
       run: task deps:sync
@@ -120,6 +121,7 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        MISE_GITHUB_TOKEN: ${{ github.token }}
         MISE_HTTP_TIMEOUT: 600
         PYTHONIOENCODING: utf-8
       run: task deps:refresh
