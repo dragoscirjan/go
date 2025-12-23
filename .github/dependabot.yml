@@ -1,5 +1,49 @@
 version: 2
 updates:
+  # GitHub Actions dependencies
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    assignees:
+      - 'dragoscirjan'
+    commit-message:
+      include: 'scope'
+      prefix: 'chore'
+      prefix-development: 'chore'
+    groups:
+      github-actions-dependencies:
+        patterns:
+          - '*'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    open-pull-requests-limit: 3
+
+  # Go module dependencies (go.mod)
+  - package-ecosystem: 'gomod'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    assignees:
+      - 'dragoscirjan'
+    commit-message:
+      include: 'scope'
+      prefix: 'chore'
+      prefix-development: 'chore'
+    groups:
+      go-dependencies:
+        patterns:
+          - '*'
+    labels:
+      - 'dependencies'
+      - 'go'
+    open-pull-requests-limit: 5
+
   # NPM dependencies (package.json)
   - package-ecosystem: 'npm'
     directory: '/'
@@ -7,20 +51,20 @@ updates:
       interval: 'weekly'
       day: 'monday'
       time: '06:00'
-    open-pull-requests-limit: 5
     assignees:
       - 'dragoscirjan'
     commit-message:
+      include: 'scope'
       prefix: 'chore'
       prefix-development: 'chore'
-      include: 'scope'
-    labels:
-      - 'dependencies'
-      - 'npm'
     groups:
       npm-dependencies:
         patterns:
           - '*'
+    labels:
+      - 'dependencies'
+      - 'npm'
+    open-pull-requests-limit: 5
 
   # Python dependencies (pyproject.toml)
   - package-ecosystem: 'pip'
@@ -29,35 +73,17 @@ updates:
       interval: 'weekly'
       day: 'monday'
       time: '06:00'
-    open-pull-requests-limit: 3
     assignees:
       - 'dragoscirjan'
     commit-message:
+      include: 'scope'
       prefix: 'chore'
       prefix-development: 'chore'
-      include: 'scope'
-    labels:
-      - 'dependencies'
-      - 'python'
     groups:
       python-dependencies:
         patterns:
           - '*'
-
-  # GitHub Actions dependencies
-  - package-ecosystem: 'github-actions'
-    directory: '/'
-    schedule:
-      interval: 'weekly'
-      day: 'monday'
-      time: '06:00'
-    open-pull-requests-limit: 3
-    assignees:
-      - 'dragoscirjan'
-    commit-message:
-      prefix: 'chore'
-      prefix-development: 'chore'
-      include: 'scope'
     labels:
       - 'dependencies'
-      - 'github-actions'
+      - 'python'
+    open-pull-requests-limit: 3

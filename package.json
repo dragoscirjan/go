@@ -1,7 +1,4 @@
 {
-  "name": "go-template",
-  "version": "1.0.0",
-  "description": "Modern Go project template with comprehensive tooling",
   "devDependencies": {
     "@jscpd/badge-reporter": "^4.0.1",
     "@templ-project/eslint": "^1.3.0",

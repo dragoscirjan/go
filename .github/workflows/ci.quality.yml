@@ -1,0 +1,128 @@
+name: CI » Validate & Build
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Operating system to run on
+        required: false
+        type: string
+        default: ubuntu-latest
+      target:
+        description: Go target (GOOS/GOARCH format, e.g., linux/amd64)
+        required: false
+        type: string
+        default: linux/amd64
+      jobs:
+        description: Comma-separated list of jobs to run (build, lint, test, duplicate-check)
+        required: false
+        type: string
+        default: build,lint,test
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runs-on }}
+    if: contains(inputs.jobs, 'build')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-tools
+
+      - name: Build
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: task build GO_BUILD_TARGET=${{ inputs.target }}
+        shell: bash
+
+      - name: Parse target
+        id: target
+        uses: ./.github/actions/parse-target
+        with:
+          target: ${{ inputs.target }}
+
+      - name: Create distribution archive
+        id: archive
+        run: |
+          mkdir -p dist
+          ARCHIVE="dist/go-template_${{ steps.target.outputs.os }}_${{ steps.target.outputs.arch }}${{ steps.target.outputs.archive_ext }}"
+
+          if [[ "${{ steps.target.outputs.os }}" == "windows" ]]; then
+            zip -j "$ARCHIVE" build/go-template.exe || \
+              mise exec -- pwsh -Command "Compress-Archive -Path 'build/go-template.exe' -DestinationPath '$ARCHIVE'"
+          else
+            tar -czf "$ARCHIVE" -C build go-template
+          fi
+
+          echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
+          echo "Created: $ARCHIVE"
+        shell: bash
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: build-${{ inputs.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  lint:
+    runs-on: ${{ inputs.runs-on }}
+    if: always() && contains(inputs.jobs, 'lint') && (needs.build.result == 'success' || needs.build.result == 'skipped')
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-tools
+
+      - name: Check Code Formatting
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          task format:check
+        shell: bash
+
+      - name: Lint Code
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          task lint:check
+        shell: bash
+
+  test:
+    runs-on: ${{ inputs.runs-on }}
+    if: always() && contains(inputs.jobs, 'test') && (needs.lint.result == 'success' || needs.lint.result == 'skipped')
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-tools
+
+      - name: Run Tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          task test
+        shell: bash
+
+      - name: Run Tests with Coverage
+        if: inputs.runs-on == 'ubuntu-latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          task test:gen-coverage
+        shell: bash
+
+  duplicate-check:
+    if: inputs.runs-on == 'ubuntu-latest'
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+
+      - name: Run duplicate check
+        run: |
+          npm install && npm run duplicate-check

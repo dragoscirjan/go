@@ -1,80 +1,80 @@
+# Archives
+*.tar*
+*.tgz
+*.zip
+
+# Build Folders
+*.dll
+*.dylib
+*.exe
+*.exe~
+*.so
+*.test
+build/
+dist/
+
+# Cache folders
+.*cache/
+.task/
+
 # Code with AI
 .cwai
 .github/prompts
-
-# Go workspace
-go.work
-
-# Dependency directories
-vendor/
-
-# Logs
-logs
-*.log
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
 
 # Coverage files
 *.out
 coverage.html
 
-# Node modules
-node_modules/
+# Dependency directories
+vendor/
 
-# Cache folders
-.cache/
-.task/
-
-# Build Folders
-build/
-dist/
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-
-# Optional eslint cache
-.eslintcache
-
-# Archives
-*.tgz
-*.tar*
-*.zip
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # dotenv environment variable files
+!.env.example
 .env
 .env.*
-!.env.example
+
+# Go workspace
+go.work
+go.work.sum
 
 # Jscpd reports
 .jscpd/html/
 
-# PSScriptAnalyzer
-.github/scripts/
-
-# TypeDoc
-docs-html/
+# Logs
+*.log
+*.log*
+logs
 
 # mise local configs
 .mise.local.toml
 mise.local.toml
 
-# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.venv/
+# Node modules
+node_modules/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# PSScriptAnalyzer
+.github/scripts/
+
+# Python cache
+*.pyc
+*.pyd
+*.pyo
+.ruff_cache/
+.venv/
+__pycache__/
+
+# Runtime data
+*.pid
+*.pid.lock
+*.seed
+pids
+
+# TypeDoc
+docs-html/

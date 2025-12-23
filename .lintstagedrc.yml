@@ -1,13 +1,13 @@
 '*.{json,md,toml,yaml,yml}':
-  - task format:prettier --
   - task eslint -- --fix
-'*.sh':
-  - task shlint_py -- --fix
+  - task prettier -- --write
+'*.go':
+  - task gofmt -- -s -w
+  - task golangci-lint -- run --fix
 '*.ps1':
   - task pwshlint_py -- --fix
 '*.py':
-  - task ruff -- format
   - task pylint --
-'*.go':
-  - task gofmt -- -s -w
-  - task lint:go --
+  - task ruff -- format
+'*.sh':
+  - task shlint_py -- --fix

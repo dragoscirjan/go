@@ -5,55 +5,55 @@
     # Enable all default rules
     IncludeDefaultRules = $true
 
-    # Severity levels to include: Error, Warning, Information
-    Severity = @('Error', 'Warning', 'Information')
+    # Severity levels to include (alphabetically sorted)
+    Severity = @('Error', 'Information', 'Warning')
 
-    # Rules to exclude (adjust as needed)
+    # Rules to exclude (alphabetically sorted)
     ExcludeRules = @(
-        # Allow Write-Host for user-facing scripts (install scripts, build tools, etc.)
-        'PSAvoidUsingWriteHost',
         # Disable alignment rule - too opinionated and causes conflicts
-        'PSAlignAssignmentStatement'
+        'PSAlignAssignmentStatement',
+        # Allow Write-Host for user-facing scripts (install scripts, build tools, etc.)
+        'PSAvoidUsingWriteHost'
     )
 
-    # Custom rule configuration
+    # Custom rule configuration (alphabetically sorted)
     Rules = @{
-        PSPlaceOpenBrace = @{
-            Enable = $true
-            OnSameLine = $true
-            NewLineAfter = $true
-            IgnoreOneLineBlock = $true
+        PSAlignAssignmentStatement = @{
+            CheckHashtable = $true
+            Enable         = $true
         }
 
         PSPlaceCloseBrace = @{
-            Enable = $true
-            NewLineAfter = $true
+            Enable            = $true
             IgnoreOneLineBlock = $true
+            NewLineAfter      = $true
             NoEmptyLineBefore = $false
         }
 
+        PSPlaceOpenBrace = @{
+            Enable            = $true
+            IgnoreOneLineBlock = $true
+            NewLineAfter      = $true
+            OnSameLine        = $true
+        }
+
         PSUseConsistentIndentation = @{
-            Enable = $true
-            IndentationSize = 2
+            Enable              = $true
+            IndentationSize     = 2
+            Kind                = 'space'
             PipelineIndentation = 'IncreaseIndentationForFirstPipeline'
-            Kind = 'space'
         }
 
         PSUseConsistentWhitespace = @{
-            Enable = $true
-            CheckInnerBrace = $true
-            CheckOpenBrace = $true
-            CheckOpenParen = $true
-            CheckOperator = $true
-            CheckPipe = $true
+            CheckInnerBrace                 = $true
+            CheckOpenBrace                  = $true
+            CheckOpenParen                  = $true
+            CheckOperator                   = $true
+            CheckParameter                  = $false
+            CheckPipe                       = $true
             CheckPipeForRedundantWhitespace = $false
-            CheckSeparator = $true
-            CheckParameter = $false
-        }
-
-        PSAlignAssignmentStatement = @{
-            Enable = $true
-            CheckHashtable = $true
+            CheckSeparator                  = $true
+            Enable                          = $true
         }
 
         PSUseCorrectCasing = @{

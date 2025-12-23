@@ -2,56 +2,58 @@ name: CI » Version
 
 on:
   workflow_call:
+    inputs:
+      runs-on:
+        description: Operating system to run on
+        required: false
+        type: string
+        default: ubuntu-latest
+      target:
+        description: Go target (GOOS/GOARCH format)
+        required: false
+        type: string
+        default: linux/amd64
     secrets:
       GH_TOKEN:
         description: GitHub token for version bump and PR creation
         required: true
-    outputs:
-      version:
-        description: 'The version tag that was created (e.g., 1.2.3)'
-        value: ${{ jobs.version.outputs.version }}
-      tag:
-        description: 'The version tag (alias for version)'
-        value: ${{ jobs.version.outputs.version }}
   workflow_dispatch:
     inputs:
       skip_validation:
-        description: 'Skip build validation before versioning'
+        description: Skip build validation before versioning
         required: false
         type: boolean
         default: false
-
-env:
-  ACTIONS_STEP_DEBUG: true
+      runs-on:
+        description: Operating system runner
+        required: false
+        type: choice
+        options:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        default: ubuntu-latest
+      target:
+        description: Go target (GOOS/GOARCH format)
+        required: false
+        type: string
+        default: linux/amd64
 
 jobs:
   # Optional validation when manually triggered
-  validate:
+  quality:
+    name: Quality
     if: github.event_name == 'workflow_dispatch' && !inputs.skip_validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-tools
-
-      - name: Lint Code
-        run: |
-          task lint
-        shell: bash
-
-      - name: Test Code
-        run: |
-          task test
-        shell: bash
-
-      - name: Test Code
-        run: |
-          task build
-        shell: bash
+    uses: ./.github/workflows/ci.quality.yml
+    with:
+      runs-on: ${{ inputs.runs-on }}
+      target: ${{ inputs.target }}
+      jobs: lint,test
 
   version:
-    runs-on: ubuntu-latest
-    needs: [validate]
-    if: always() && (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+    runs-on: ${{ inputs.runs-on }}
+    needs: [quality]
+    if: always() && (needs.quality.result == 'success' || needs.quality.result == 'skipped')
     permissions:
       contents: write
       pull-requests: write
@@ -66,7 +68,7 @@ jobs:
         uses: dragoscops/bumpalicious@v3
         with:
           github_token: ${{ secrets.GH_TOKEN }}
-          pr: 'true'
+          pr: true
           workspaces: .:go
 
       - name: Output new version

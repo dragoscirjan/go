@@ -3,16 +3,22 @@ version: '3'
 vars:
   # mise dependent
   __TF_MISE_E: 'mise trust; mise exec --'
-  __TF_MISE_E_PWSH: 'mise trust; mise exec -- pwsh -ExecutionPolicy Bypass -Command'
-  __TF_MISE_E_PWSH_FILE: 'mise trust; mise exec -- pwsh -ExecutionPolicy Bypass -File'
+  __TF_MISE_E_PWSH: 'mise trust; mise exec -- pwsh -NoProfile -ExecutionPolicy Bypass -Command'
+  __TF_MISE_E_PWSH_FILE: 'mise trust; mise exec -- pwsh -NoProfile -ExecutionPolicy Bypass -File'
   __TF_MISE_E_UV_RUN: 'mise trust; mise exec -- uv run'
   # os dependent
-
+  __TF_HEADER_LINE: '=============================================================='
+  __TF_SEP: ' '
   __TF_VAR_PREFIX:
     sh: |
       echo "{{if eq OS "windows"}}\${{else}}{{end}}"
-  __TF_HEADER_LINE: '=============================================================='
-  __TF_SEP: ' '
+
+  # go dependent
+  GO_PROJECT_NAME: '{{default .GO_PROJECT_NAME "go-template"}}'
+  GO_BUILD_TYPE: '{{default .GO_BUILD_TYPE "release"}}'
+  GO_BUILD_ARCH:
+    sh: 'echo {{if eq OS "darwin"}}arm64{{else}}amd64{{end}}'
+  GO_BUILD_TARGET: '{{default .GO_BUILD_TARGET ""}}' # Full target triple (e.g., linux/amd64)
 
 tasks:
   # ==========================================================================
@@ -32,17 +38,6 @@ tasks:
         platforms: [windows]
     desc: 'Print current build environment variables'
 
-  pwsh:
-    desc: 'Run PowerShell scripts'
-    vars:
-      CODE: '{{.CODE | default "echo \"Hello from PowerShell!\""}}'
-    cmds:
-      - cmd: |
-          temp=$(mktemp)
-          echo $temp
-          # {{.__TF_MISE_E}} pwsh -Command "{{.CODE}}"
-    silent: true
-
   # ==========================================================================
   # Build Tasks
   # ==========================================================================
@@ -52,13 +47,30 @@ tasks:
     cmds:
       - cmd: |
           echo "{{.__TF_HEADER_LINE}}"
-          echo "Building for {{OS}}/{{ARCH}}"
+          echo "Building {{.GO_PROJECT_NAME}} for {{OS}}/{{ARCH}} in {{.GO_BUILD_TYPE}} mode"
           echo "{{.__TF_HEADER_LINE}}"
       - task: print:env
       - cmd: |
           mkdir -p build
-          {{.__TF_MISE_E}} go build -o build/cli{{if eq OS "windows"}}.exe{{end}} ./cmd/cli
-          echo "✅ Go build completed -> build/cli{{if eq OS "windows"}}.exe{{end}}"
+          {{if ne .GO_BUILD_TARGET ""}}
+          GOOS=$(echo "{{.GO_BUILD_TARGET}}" | cut -d'/' -f1)
+          GOARCH=$(echo "{{.GO_BUILD_TARGET}}" | cut -d'/' -f2)
+          {{.__TF_MISE_E}} env GOOS=$GOOS GOARCH=$GOARCH go build \
+            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
+            -o build/{{.GO_PROJECT_NAME}}{{if eq (printf "%s" (slice .GO_BUILD_TARGET 0 7)) "windows"}}.exe{{end}} \
+            ./cmd/cli
+          {{else if eq OS "windows"}}
+          {{.__TF_MISE_E}} go build \
+            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
+            -o build/{{.GO_PROJECT_NAME}}.exe \
+            ./cmd/cli
+          {{else}}
+          {{.__TF_MISE_E}} go build \
+            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
+            -o build/{{.GO_PROJECT_NAME}} \
+            ./cmd/cli
+          {{end}}
+          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}{{if eq OS "windows"}}.exe{{end}}"
     sources:
       - '**/*.go'
       - go.mod
@@ -71,17 +83,16 @@ tasks:
   clean:
     desc: 'Clean all build artifacts'
     cmds:
-      - cmd: |
-          echo "🧹 Cleaning build artifacts..."
-          rm -rf \
+      - |
+        rm -rf \
+            .coverage \
+            .jscpd/html \
             .task \
             build \
-            dist \
-            docs-html \
+            coverage.html \
             coverage.out \
-            coverage.html
-          {{.__TF_MISE_E}} go clean || true
-          echo "✓ Build artifacts cleaned"
+            dist \
+            docs-html
 
   # ============================================================================
   # Code Quality Tasks
@@ -311,11 +322,8 @@ tasks:
 
   lint:check:go:
     cmds:
-      - cmd: |
-          {{.__TF_MISE_E}} golangci-lint run
-          echo "- ✅ Go lint check completed"
-    desc: 'Check Go code using golangci-lint'
-    silent: true
+      - task: golangci-lint
+      - echo "- ✅ Go lint check completed"
 
   lint:check:eslint:
     cmds:
@@ -357,12 +365,29 @@ tasks:
         {{.__TF_MISE_E}} npx -y lint-staged
     silent: true
 
+  audit-check:
+    desc: 'Check for security vulnerabilities in dependencies'
+    cmds:
+      - |
+        echo "🔒 Checking for security vulnerabilities..."
+        {{.__TF_MISE_E}} go list -json -deps ./... 2>/dev/null | \
+          {{.__TF_MISE_E}} go run golang.org/x/vuln/cmd/govulncheck@latest -json ./... || true
+        echo "✅ Security audit completed"
+
   duplicate-check:
     cmds:
       - |
         {{.__TF_MISE_E}} npm run duplicate-check
       - git add .jscpd/jscpd-badge.svg 2>/dev/null || true
     desc: 'Check for duplicate code using jscpd'
+
+  license-check:
+    desc: 'Check license compliance'
+    cmds:
+      - |
+        echo "📋 Checking licenses..."
+        {{.__TF_MISE_E}} go run github.com/google/go-licenses@latest check ./... || true
+        echo "✅ License check completed"
 
   # ============================================================================
   # Test Tasks
@@ -371,16 +396,28 @@ tasks:
   test:
     desc: 'Run tests with coverage'
     cmds:
+      - task: build
+        vars:
+          GO_BUILD_TYPE: 'debug'
       - cmd: |
           {{.__TF_MISE_E}} gotestsum --format testname -- -race -coverprofile=coverage.out ./...
-          echo "✅ Go tests completed"
+      - task: test:gen-coverage
 
   test:gen-coverage:
+    desc: 'Generate coverage report'
     cmds:
-      - cmd: |
-          {{.__TF_MISE_E}} go tool cover -html=coverage.out -o coverage.html
-          echo "✅ Coverage report generated: coverage.html"
-    desc: 'Generate test coverage report'
+      - |
+        echo ""
+        echo "📊 Generating coverage report..."
+        {{.__TF_MISE_E}} go tool cover -html=coverage.out -o coverage.html
+        echo ""
+        if [ -f "coverage.html" ]; then
+          echo "✅ HTML coverage report: coverage.html"
+        fi
+        if [ -f "coverage.out" ]; then
+          echo "✅ Coverage data: coverage.out"
+        fi
+        echo ""
     silent: true
 
   # ============================================================================
@@ -391,15 +428,37 @@ tasks:
     desc: 'Run application'
     deps:
       - task: build
+        vars:
+          GO_BUILD_TYPE: 'debug'
     cmds:
-      - cmd: ./build/cli{{if eq OS "windows"}}.exe{{end}}
+      - |
+        echo "🏃 Running application..."
+        ./build/{{.GO_PROJECT_NAME}}{{if eq OS "windows"}}.exe{{end}}
 
   debug:
-    desc: 'Run application with debugger (gdb on Linux/macOS)'
+    desc: 'Run application with debugger (dlv)'
     cmds:
       - task: build
-      # TODO: add actual run+debug commands here
-      - cmd: echo "Running (Debug mode)... "
+        vars:
+          GO_BUILD_TYPE: 'debug'
+      - cmd: |
+          {{if eq OS "windows"}}
+          echo "⚠️ CLI debugging not supported on Windows."
+          echo "ℹ️ Please use Visual Studio Code or your IDE's debugger instead."
+          echo ""
+          echo "Alternatively, install delve and run manually:"
+          echo "dlv debug ./cmd/cli"
+          exit 0
+          {{else}}
+          if command -v dlv >/dev/null 2>&1; then
+            echo "🐛 Starting delve debugger..."
+            dlv debug ./cmd/cli
+          else
+            echo "⚠️ Delve debugger not found. Install with:"
+            echo "go install github.com/go-delve/delve/cmd/dlv@latest"
+            exit 1
+          fi
+          {{end}}
 
   # ============================================================================
   # Documentation Tasks
@@ -533,8 +592,8 @@ tasks:
 
   deps:refresh:
     cmds:
-      - task: deps:refresh:go
       - task: deps:refresh:mise
+      - task: deps:refresh:go
       - task: deps:refresh:npm
       - task: deps:refresh:uv
     desc: 'Refresh all project dependencies'

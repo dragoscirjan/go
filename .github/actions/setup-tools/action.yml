@@ -8,102 +8,118 @@ inputs:
 runs:
   using: 'composite'
   steps:
-  # === task ===
-  - name: Setup Task
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-    uses: go-task/setup-task@v1
+    # === task ===
+    - name: Setup Task
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      uses: go-task/setup-task@v1
 
-  # === mise ===
-  - name: Install Mise (Darwin & Linux)
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-    if: ${{ runner.os != 'Windows' }}
-    shell: bash
-    run: |
-      curl https://mise.run | sh
-      # TODO: make sure the command works for both Linux and MacOS
-      # echo "eval \"\$(/Users/runner/.local/bin/mise activate bash)\"" >> ~/.bashrc
-      mise activate
-      mise --version
+    # === mise ===
+    - name: Install Mise (Darwin & Linux)
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      if: ${{ runner.os != 'Windows' }}
+      shell: bash
+      run: |
+        curl https://mise.run | sh
+        # TODO: make sure the command works for both Linux and MacOS
+        # echo "eval \"\$(/Users/runner/.local/bin/mise activate bash)\"" >> ~/.bashrc
+        mise activate
+        mise --version
 
-  - name: Install Mise (Windows)
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-    if: ${{ runner.os == 'Windows' }}
-    shell: pwsh
-    run: |
-      choco install mise -y --force --no-progress
+    - name: Install Mise (Windows)
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      if: ${{ runner.os == 'Windows' }}
+      shell: pwsh
+      run: |
+        choco install mise -y --force --no-progress
 
-  - name: Update Mise
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-    if: ${{ runner.os == 'Windows' }}
-    shell: bash
-    run: |
-      mise self-update
-      mise --version
+    - name: Update Mise
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      if: ${{ runner.os == 'Windows' }}
+      shell: bash
+      run: |
+        mise self-update
+        mise --version
 
-  # === mise === cache ===
-  - uses: actions/cache@v4
-    continue-on-error: true
-    if: ${{ runner.os != 'Windows' }}
-    with:
-      key: go-${{ runner.os }}-${{ runner.arch }}-mise-${{ hashFiles('mise.lock') }}
-      restore-keys: |
-        go-${{ runner.os }}-${{ runner.arch }}-mise-
-      path: |
-        ~/.local/share/mise
-        ~/.cache/mise
+    # === mise === cache ===
+    - uses: actions/cache@v4
+      continue-on-error: true
+      if: ${{ runner.os != 'Windows' }}
+      with:
+        key: go-${{ runner.os }}-${{ runner.arch }}-mise-${{ hashFiles('mise.lock') }}
+        restore-keys: |
+          go-${{ runner.os }}-${{ runner.arch }}-mise-
+        path: |
+          ~/.local/share/mise
+          ~/.cache/mise
 
-  - uses: actions/cache@v4
-    continue-on-error: true
-    if: ${{ runner.os == 'Windows' }}
-    with:
-      key: go-${{ runner.os }}-${{ runner.arch }}-mise-${{ hashFiles('mise.lock') }}
-      restore-keys: |
-        go-${{ runner.os }}-${{ runner.arch }}-mise-
-      path: |
-        ~\AppData\Local\mise\installs
-        ~\.cache\mise
+    - uses: actions/cache@v4
+      continue-on-error: true
+      if: ${{ runner.os == 'Windows' }}
+      with:
+        key: go-${{ runner.os }}-${{ runner.arch }}-mise-${{ hashFiles('mise.lock') }}
+        restore-keys: |
+          go-${{ runner.os }}-${{ runner.arch }}-mise-
+        path: |
+          ~\AppData\Local\mise\installs
+          ~\.cache\mise
 
-  # === python === cache ===
-  - uses: actions/cache@v4
-    continue-on-error: true
-    if: ${{ runner.os == 'Windows' }}
-    with:
-      key: go-${{ runner.os }}-${{ runner.arch }}-uv-${{ hashFiles('uv.lock') }}
-      restore-keys: |
-        go-${{ runner.os }}-${{ runner.arch }}-uv-
-      path: |
-        .venv
+    # === go === cache ===
+    - uses: actions/cache@v4
+      with:
+        key: go-${{ runner.os }}-${{ runner.arch }}-mod-${{ hashFiles('**/go.sum') }}
+        restore-keys: go-${{ runner.os }}-${{ runner.arch }}-mod-
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
 
-  # === node === cache ===
-  - uses: actions/cache@v4
-    continue-on-error: true
-    if: ${{ runner.os == 'Windows' }}
-    with:
-      key: go-${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
-      restore-keys: |
-        go-${{ runner.os }}-${{ runner.arch }}-node-
-      path: |
-        node_modules
+    # === python === cache ===
+    - uses: actions/cache@v4
+      continue-on-error: true
+      if: ${{ runner.os == 'Windows' }}
+      with:
+        key: go-${{ runner.os }}-${{ runner.arch }}-uv-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          go-${{ runner.os }}-${{ runner.arch }}-uv-
+        path: |
+          .venv
 
-  # === sync deps ===
-  - name: Sync Dependencies
-    if: ${{ inputs.refresh-deps == 'false' }}
-    shell: bash
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-      MISE_HTTP_TIMEOUT: 600
-      PYTHONIOENCODING: utf-8
-    run: task deps:sync
+    # === node === cache ===
+    - uses: actions/cache@v4
+      continue-on-error: true
+      if: ${{ runner.os == 'Windows' }}
+      with:
+        key: go-${{ runner.os }}-${{ runner.arch }}-node-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          go-${{ runner.os }}-${{ runner.arch }}-node-
+        path: |
+          node_modules
 
-  - name: Refresh Dependencies
-    if: ${{ inputs.refresh-deps == 'true' }}
-    shell: bash
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
-      MISE_HTTP_TIMEOUT: 600
-      PYTHONIOENCODING: utf-8
-    run: task deps:refresh
+    # === sync deps ===
+    - name: Install system dependencies (Linux)
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential pkg-config libssl-dev
+
+    - name: Sync Dependencies
+      if: ${{ inputs.refresh-deps == 'false' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        MISE_HTTP_TIMEOUT: 600
+        PYTHONIOENCODING: utf-8
+      run: task deps:sync
+
+    - name: Refresh Dependencies
+      if: ${{ inputs.refresh-deps == 'true' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        MISE_HTTP_TIMEOUT: 600
+        PYTHONIOENCODING: utf-8
+      run: task deps:refresh

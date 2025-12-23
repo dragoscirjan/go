@@ -1,0 +1,4 @@
+#!/bin/sh
+
+mise exec -- task test
+

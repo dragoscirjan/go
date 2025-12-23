@@ -1,11 +1,6 @@
 [settings]
-# TODO: need experimental mode to support lock file -> can be solved using mise.local.toml
-# TRICKY:
-# This one breaks tools.http:llvm/llvm-project installation due to mise bug probably
-# experimental = true
-# This one I needs to be tested; but I haven't seen it working last time
+experimental = true
 lockfile = true
-# TRICKYend
 
 ############################################################################
 # Tools Configuration                                                      #
@@ -23,7 +18,24 @@ lockfile = true
 version = "1.23"
 
 # ==========================================================================
-# Other Tools
+# Languages & Runtimes (alphabetically sorted)
+# ==========================================================================
+
+# Node.js for jscpd & eslint
+#
+[tools.node]
+version = "22"
+
+# Python and package manager (for linting helpers)
+#
+[tools.python]
+version = "3.11" # Will install 3.11 or above based on availability
+
+[tools.uv]
+version = "latest"
+
+# ==========================================================================
+# CLI Tools (alphabetically sorted by tool name)
 # ==========================================================================
 
 # golangci-lint for comprehensive Go linting
@@ -42,21 +54,7 @@ windows-x64 = { asset_pattern = "golangci-lint-*-windows-amd64.zip" }
 # https://github.com/gotestyourself/gotestsum
 #
 [tools."go:gotest.tools/gotestsum"]
-version = "latest"
-
-# Node.js for jscpd & eslint
-#
-[tools.node]
-version = "latest"
-
-# Python and package manager
-#
-[tools.python]
-version = "3.11" # Will install 3.11 or above based on availability
-[tools.uv]
-version = "latest"
-
-# TODO: add here any build tool dependencies you may need that you cannot add to a config file (e.g. cargo:cargo-audit, npm:jscpd, etc.)
+version = "v1.12.0"
 
 # https://github.com/koalaman/shellcheck/releases
 # e.g. https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.x86_64.tar.xz
@@ -71,6 +69,8 @@ windows-x64 = { asset_pattern = "shellcheck-*.zip" }
 
 # https://github.com/PowerShell/PowerShell/releases
 # e.g. https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/powershell-7.5.4-osx-arm64.tar.gz
+# NOTE: mise extraction may lose the Modules/ folder structure.
+#       The postinstall hook runs .scripts/fix-mise-pwsh to re-extract properly.
 #
 [tools."github:PowerShell/PowerShell"]
 version = "latest"
@@ -81,7 +81,11 @@ macos-arm64 = { asset_pattern = "powershell-*-osx-arm64.tar.gz" }
 windows-x64 = { asset_pattern = "PowerShell-*-win-x64.zip" }
 
 ############################################################################
-# Hooks                                                    #
+# Hooks                                                                    #
 ############################################################################
+
 [hooks]
-postinstall = "{% if os() != 'windows' %}chmod -R 755 $(mise bin-paths github:PowerShell/PowerShell)/pwsh; echo 'chown -R 755 pwsh'{% endif %}"
+# Fix PowerShell installation (mise extraction loses Modules/ folder)
+# Windows: use powershell.exe (Windows PowerShell 5.1, always available) to run fix
+# Linux/macOS: run bash script
+postinstall = "{% if os() == 'windows' %}powershell.exe -NoProfile -ExecutionPolicy Bypass -File .scripts/fix-mise-pwsh.ps1{% else %}bash .scripts/fix-mise-pwsh.sh 2>/dev/null{% endif %}"
