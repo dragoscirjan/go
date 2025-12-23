@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.0 (2025-12-23)
+
+### Features
+
+* sync Go template with Rust template configuration ([412dea1](https://github.com/templ-project/go/commit/412dea1cb7ba5ea0d92e14f95050216b14d8a3a5))
+
+### Bug Fixes
+
+* disable checksum verification for GitHub tools to avoid API rate limits in CI ([e1b8362](https://github.com/templ-project/go/commit/e1b83627baaef731bfba4ccd0b2bb8277dcc8dfb))
+* pass MISE_GITHUB_TOKEN to avoid GitHub API rate limits in CI ([e332165](https://github.com/templ-project/go/commit/e332165a8d64af805564874bb00f8193daf228e6))
+
 ## 0.0.16 (2025-12-06)
 
 ### Bug Fixes
