@@ -55,22 +55,26 @@ tasks:
           {{if ne .GO_BUILD_TARGET ""}}
           GOOS=$(echo "{{.GO_BUILD_TARGET}}" | cut -d'/' -f1)
           GOARCH=$(echo "{{.GO_BUILD_TARGET}}" | cut -d'/' -f2)
+          EXE_EXT=""
+          if [ "$GOOS" = "windows" ]; then EXE_EXT=".exe"; fi
           {{.__TF_MISE_E}} env GOOS=$GOOS GOARCH=$GOARCH go build \
             {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
-            -o build/{{.GO_PROJECT_NAME}}{{if eq (printf "%s" (slice .GO_BUILD_TARGET 0 7)) "windows"}}.exe{{end}} \
+            -o build/{{.GO_PROJECT_NAME}}$EXE_EXT \
             ./cmd/cli
+          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}$EXE_EXT"
           {{else if eq OS "windows"}}
           {{.__TF_MISE_E}} go build \
             {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
             -o build/{{.GO_PROJECT_NAME}}.exe \
             ./cmd/cli
+          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}.exe"
           {{else}}
           {{.__TF_MISE_E}} go build \
             {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
             -o build/{{.GO_PROJECT_NAME}} \
             ./cmd/cli
+          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}"
           {{end}}
-          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}{{if eq OS "windows"}}.exe{{end}}"
     sources:
       - '**/*.go'
       - go.mod
