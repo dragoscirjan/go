@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 (2025-12-23)
+
+### Bug Fixes
+
+* replace slash with dash in artifact names to avoid invalid characters ([bb009ca](https://github.com/templ-project/go/commit/bb009caefc86d80d60565385b01f168352608882))
+
 ## 0.1.1 (2025-12-23)
 
 ### Bug Fixes
