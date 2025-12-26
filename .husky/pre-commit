@@ -1,3 +1,3 @@
-mise exec -- task format lint duplicate-check license-check audit-check
+task format lint duplicate-check license-check audit-check
 
 git add .

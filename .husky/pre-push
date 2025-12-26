@@ -1,4 +1,3 @@
 #!/bin/sh
 
-mise exec -- task test
-
+task test
