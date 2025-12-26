@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 (2025-12-26)
+
+### Features
+
+* move build target matrix from CI to Taskfile ([1439712](https://github.com/templ-project/go/commit/14397125f5156656ac7d5822c5b54bbfad49f422))
+
 ## 0.1.2 (2025-12-23)
 
 ### Bug Fixes
