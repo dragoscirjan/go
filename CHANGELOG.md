@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2025-12-26)
+
+### Bug Fixes
+
+* release workflow must build artifacts (not skip build) ([f9b15bc](https://github.com/templ-project/go/commit/f9b15bc612ae12bf14f41cab9d4806d95f65ffda))
+
 ## 0.2.0 (2025-12-26)
 
 ### Features
