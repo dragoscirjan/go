@@ -8,11 +8,6 @@ on:
         required: false
         type: string
         default: ubuntu-latest
-      target:
-        description: Go target (GOOS/GOARCH format)
-        required: false
-        type: string
-        default: linux/amd64
     secrets:
       GH_TOKEN:
         description: GitHub token for version bump and PR creation
@@ -33,11 +28,6 @@ on:
           - macos-latest
           - windows-latest
         default: ubuntu-latest
-      target:
-        description: Go target (GOOS/GOARCH format)
-        required: false
-        type: string
-        default: linux/amd64
 
 jobs:
   # Optional validation when manually triggered
@@ -47,7 +37,6 @@ jobs:
     uses: ./.github/workflows/ci.quality.yml
     with:
       runs-on: ${{ inputs.runs-on }}
-      target: ${{ inputs.target }}
       jobs: lint,test
 
   version:

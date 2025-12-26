@@ -8,27 +8,23 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  # Define build matrix in one place
+  # Define build matrix - only OS runners, architectures are defined in .build-targets.yml
   matrix:
     name: Define Matrix
     runs-on: ubuntu-latest
     outputs:
-      targets: ${{ steps.set-matrix.outputs.targets }}
+      runners: ${{ steps.set-matrix.outputs.runners }}
     steps:
       - name: Set matrix
         id: set-matrix
         run: |
-          # Go targets use GOOS/GOARCH format
-          # To list supported architectures, run: go tool dist list
-          echo 'targets=[
-            {"runs-on":"ubuntu-latest","target":"linux/amd64"},
-            {"runs-on":"macos-latest","target":"darwin/arm64"},
-            {"runs-on":"windows-latest","target":"windows/amd64"}
+          # OS runners - each runner builds all architectures for its OS
+          # Architecture targets are defined in .build-targets.yml
+          echo 'runners=[
+            "ubuntu-latest",
+            "macos-latest",
+            "windows-latest"
           ]' | tr -d '\n' | tr -s ' ' >> $GITHUB_OUTPUT
-          # use below version to test single target, before expanding matrix
-          # echo 'targets=[
-          #   {"runs-on":"ubuntu-latest","target":"linux/amd64"}
-          # ]' | tr -d '\n' | tr -s ' ' >> $GITHUB_OUTPUT
 
   test-scaffold:
     name: Test Scaffold
@@ -48,19 +44,18 @@ jobs:
   # Option A: build,lint,test before version bump (slower, but validates before release)
   # Option B: lint,test only before version bump (faster, build happens at release time)
   quality:
-    name: Quality (${{ matrix.target.runs-on }}, ${{ matrix.target.target }})
+    name: Quality (${{ matrix.runner }})
     needs: [matrix]
     if: |
       !contains(github.event.head_commit.message, 'version_bump/')
     strategy:
       matrix:
-        target: ${{ fromJson(needs.matrix.outputs.targets) }}
+        runner: ${{ fromJson(needs.matrix.outputs.runners) }}
     uses: ./.github/workflows/ci.quality.yml
     permissions:
       contents: write
     with:
-      runs-on: ${{ matrix.target.runs-on }}
-      target: ${{ matrix.target.target }}
+      runs-on: ${{ matrix.runner }}
       jobs: lint,test # Change to 'build,lint,test' to build before version bump
 
   # Version bump (only on main branch push, uses conventional commits)
@@ -77,8 +72,7 @@ jobs:
       contents: write
       pull-requests: write
     with:
-      runs-on: ${{ fromJson(needs.matrix.outputs.targets)[0].runs-on }}
-      target: ${{ fromJson(needs.matrix.outputs.targets)[0].target }}
+      runs-on: ubuntu-latest
     secrets:
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -111,26 +105,21 @@ jobs:
             echo "Extracted tag: $TAG"
             echo "Extracted version: $VERSION"
           else
-            echo "⚠ version.json not found in artifact - skipping"
+            echo "version.json not found in artifact - skipping"
             echo "tag=" >> $GITHUB_OUTPUT
             echo "version=" >> $GITHUB_OUTPUT
           fi
 
   # Release (only on main branch push after version bump)
   release:
-    name: Create Release (${{ matrix.target.target }})
+    name: Create Release
     needs: [matrix, quality, version-detect]
     if: |
       always()
       && needs.version-detect.outputs.tag != ''
-    strategy:
-      matrix:
-        target: ${{ fromJson(needs.matrix.outputs.targets) }}
     uses: ./.github/workflows/ci.release.yml
     permissions:
       contents: write
     with:
       tag: ${{ needs.version-detect.outputs.tag }}
       prerelease: false
-      runs-on: ${{ matrix.target.runs-on }}
-      target: ${{ matrix.target.target }}

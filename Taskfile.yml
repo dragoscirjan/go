@@ -16,9 +16,13 @@ vars:
   # go dependent
   GO_PROJECT_NAME: '{{default .GO_PROJECT_NAME "go-template"}}'
   GO_BUILD_TYPE: '{{default .GO_BUILD_TYPE "release"}}'
-  GO_BUILD_ARCH:
-    sh: 'echo {{if eq OS "darwin"}}arm64{{else}}amd64{{end}}'
-  GO_BUILD_TARGET: '{{default .GO_BUILD_TARGET ""}}' # Full target triple (e.g., linux/amd64)
+
+  # Build targets - loaded from .build-targets.yml
+  # Each target has: os (GOOS), arch (GOARCH)
+  GO_BUILD_TARGETS_RAW:
+    sh: cat .build-targets.yml
+  GO_BUILD_TARGETS:
+    ref: '(fromYaml .GO_BUILD_TARGETS_RAW).targets'
 
 tasks:
   # ==========================================================================
@@ -43,42 +47,60 @@ tasks:
   # ==========================================================================
 
   build:
-    desc: 'Build project'
+    desc: 'Build for current platform (output: build/<name>_<os>_<arch>)'
+    vars:
+      TARGET_OS: '{{OS}}'
+      TARGET_ARCH: '{{ARCH}}'
     cmds:
-      - cmd: |
-          echo "{{.__TF_HEADER_LINE}}"
-          echo "Building {{.GO_PROJECT_NAME}} for {{OS}}/{{ARCH}} in {{.GO_BUILD_TYPE}} mode"
-          echo "{{.__TF_HEADER_LINE}}"
-      - task: print:env
-      - cmd: |
-          mkdir -p build
-          {{if ne .GO_BUILD_TARGET ""}}
-          GOOS=$(echo "{{.GO_BUILD_TARGET}}" | cut -d'/' -f1)
-          GOARCH=$(echo "{{.GO_BUILD_TARGET}}" | cut -d'/' -f2)
-          EXE_EXT=""
-          if [ "$GOOS" = "windows" ]; then EXE_EXT=".exe"; fi
-          {{.__TF_MISE_E}} env GOOS=$GOOS GOARCH=$GOARCH go build \
-            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
-            -o build/{{.GO_PROJECT_NAME}}$EXE_EXT \
-            ./cmd/cli
-          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}$EXE_EXT"
-          {{else if eq OS "windows"}}
-          {{.__TF_MISE_E}} go build \
-            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
-            -o build/{{.GO_PROJECT_NAME}}.exe \
-            ./cmd/cli
-          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}.exe"
-          {{else}}
-          {{.__TF_MISE_E}} go build \
-            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
-            -o build/{{.GO_PROJECT_NAME}} \
-            ./cmd/cli
-          echo "✅ Go build completed -> build/{{.GO_PROJECT_NAME}}"
-          {{end}}
+      - task: build:target
+        vars:
+          TARGET_OS: '{{.TARGET_OS}}'
+          TARGET_ARCH: '{{.TARGET_ARCH}}'
     sources:
       - '**/*.go'
       - go.mod
       - go.sum
+
+  build:target:
+    desc: 'Build for a specific OS/ARCH target'
+    requires:
+      vars: [TARGET_OS, TARGET_ARCH]
+    vars:
+      EXE_EXT: '{{if eq .TARGET_OS "windows"}}.exe{{end}}'
+      OUTPUT_NAME: '{{.GO_PROJECT_NAME}}_{{.TARGET_OS}}_{{.TARGET_ARCH}}{{.EXE_EXT}}'
+    status:
+      # Skip if TARGET_OS doesn't match current OS (returns 0 = up-to-date = skip)
+      - '[ "{{.TARGET_OS}}" != "{{OS}}" ]'
+    cmds:
+      - cmd: |
+          echo "{{.__TF_HEADER_LINE}}"
+          echo "Building {{.GO_PROJECT_NAME}} for {{.TARGET_OS}}/{{.TARGET_ARCH}} in {{.GO_BUILD_TYPE}} mode"
+          echo "{{.__TF_HEADER_LINE}}"
+      - cmd: |
+          mkdir -p build
+          {{.__TF_MISE_E}} env GOOS={{.TARGET_OS}} GOARCH={{.TARGET_ARCH}} go build \
+            {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
+            -o build/{{.OUTPUT_NAME}} \
+            ./cmd/cli
+          echo "Built: build/{{.OUTPUT_NAME}}"
+
+  build:all:
+    desc: 'Build all architecture targets for current OS'
+    cmds:
+      - for:
+          var: GO_BUILD_TARGETS
+        task: build:target
+        vars:
+          TARGET_OS: '{{.ITEM.os}}'
+          TARGET_ARCH: '{{.ITEM.arch}}'
+
+  build:dist:
+    desc: 'Create distribution archives for all builds in build/'
+    cmds:
+      - cmd: .scripts/build-dist.sh "{{.GO_PROJECT_NAME}}"
+        platforms: [linux, darwin]
+      - cmd: '{{.__TF_MISE_E_PWSH_FILE}} .scripts/build-dist.ps1 -ProjectName "{{.GO_PROJECT_NAME}}"'
+        platforms: [windows]
 
   # ============================================================================
   # Clean Tasks
@@ -430,14 +452,17 @@ tasks:
 
   run:
     desc: 'Run application'
+    vars:
+      EXE_EXT: '{{if eq OS "windows"}}.exe{{end}}'
+      OUTPUT_NAME: '{{.GO_PROJECT_NAME}}_{{OS}}_{{ARCH}}{{.EXE_EXT}}'
     deps:
       - task: build
         vars:
           GO_BUILD_TYPE: 'debug'
     cmds:
       - |
-        echo "🏃 Running application..."
-        ./build/{{.GO_PROJECT_NAME}}{{if eq OS "windows"}}.exe{{end}}
+        echo "Running application..."
+        ./build/{{.OUTPUT_NAME}}
 
   debug:
     desc: 'Run application with debugger (dlv)'

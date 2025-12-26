@@ -12,16 +12,6 @@ on:
         required: false
         type: boolean
         default: false
-      runs-on:
-        description: Operating system runner
-        required: false
-        type: string
-        default: ubuntu-latest
-      target:
-        description: Go target (GOOS/GOARCH format)
-        required: false
-        type: string
-        default: linux/amd64
   workflow_dispatch:
     inputs:
       tag:
@@ -33,40 +23,43 @@ on:
         required: false
         type: boolean
         default: false
-      runs-on:
-        description: Operating system runner
-        required: false
-        type: choice
-        options:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-        default: ubuntu-latest
-      target:
-        description: Go target (GOOS/GOARCH format)
-        required: false
-        type: string
-        default: linux/amd64
-      skip_build:
-        description: Skip build (use existing artifact from same workflow run)
-        required: false
-        type: boolean
-        default: false
 
 jobs:
-  # Build the release artifact
+  # Define build matrix for manual workflow dispatch
+  matrix:
+    name: Define Matrix
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    outputs:
+      runners: ${{ steps.set-matrix.outputs.runners }}
+    steps:
+      - name: Set matrix
+        id: set-matrix
+        run: |
+          echo 'runners=[
+            "ubuntu-latest",
+            "macos-latest",
+            "windows-latest"
+          ]' | tr -d '\n' | tr -s ' ' >> $GITHUB_OUTPUT
+
+  # Build for all platforms (only for manual workflow dispatch)
   build:
-    name: Build
-    if: github.event_name != 'workflow_dispatch' || !inputs.skip_build
+    name: Build (${{ matrix.runner }})
+    needs: [matrix]
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        runner: ${{ fromJson(needs.matrix.outputs.runners) }}
     uses: ./.github/workflows/ci.quality.yml
     permissions:
       contents: write
     with:
-      runs-on: ${{ inputs.runs-on }}
-      target: ${{ inputs.target }}
+      runs-on: ${{ matrix.runner }}
       jobs: build
 
   # Publish the release
+  # For workflow_call: artifacts already exist from quality workflow
+  # For workflow_dispatch: artifacts created by build job above
   release:
     name: Publish Release
     runs-on: ubuntu-latest
@@ -81,17 +74,12 @@ jobs:
           ref: ${{ inputs.tag }}
           fetch-depth: 0
 
-      - name: Parse target
-        id: target
-        uses: ./.github/actions/parse-target
-        with:
-          target: ${{ inputs.target }}
-
-      - name: Download build artifact
+      - name: Download all build artifacts
         uses: actions/download-artifact@v7
         with:
-          name: build-${{ steps.target.outputs.os }}-${{ steps.target.outputs.arch }}
+          pattern: build-*
           path: release-assets
+          merge-multiple: true
 
       - name: List release assets
         run: |

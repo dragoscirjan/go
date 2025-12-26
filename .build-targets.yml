@@ -1,0 +1,30 @@
+# Build targets for cross-compilation
+# Each OS runner in CI will build all architectures for that OS
+#
+# Format:
+#   os: GOOS value (linux, darwin, windows)
+#   arch: GOARCH value (amd64, arm64, 386, etc.)
+#
+# To list all supported targets: go tool dist list
+#
+# Note: Only targets matching the current OS will be built.
+# This ensures native compilation (no cross-compilation issues with OS-specific libraries).
+
+targets:
+  # Linux targets
+  - os: linux
+    arch: amd64
+  - os: linux
+    arch: '386'
+
+  # macOS targets
+  - os: darwin
+    arch: arm64
+  - os: darwin
+    arch: amd64
+
+  # Windows targets
+  - os: windows
+    arch: amd64
+  - os: windows
+    arch: '386'

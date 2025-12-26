@@ -8,11 +8,6 @@ on:
         required: false
         type: string
         default: ubuntu-latest
-      target:
-        description: Go target (GOOS/GOARCH format, e.g., linux/amd64)
-        required: false
-        type: string
-        default: linux/amd64
       jobs:
         description: Comma-separated list of jobs to run (build, lint, test, duplicate-check)
         required: false
@@ -29,40 +24,24 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-tools
 
-      - name: Build
+      - name: Build all targets for this OS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONIOENCODING: utf-8
-        run: task build GO_BUILD_TARGET=${{ inputs.target }}
+        run: task build:all GO_BUILD_TYPE=release
         shell: bash
 
-      - name: Parse target
-        id: target
-        uses: ./.github/actions/parse-target
-        with:
-          target: ${{ inputs.target }}
-
-      - name: Create distribution archive
-        id: archive
-        run: |
-          mkdir -p dist
-          ARCHIVE="dist/go-template_${{ steps.target.outputs.os }}_${{ steps.target.outputs.arch }}${{ steps.target.outputs.archive_ext }}"
-
-          if [[ "${{ steps.target.outputs.os }}" == "windows" ]]; then
-            zip -j "$ARCHIVE" build/go-template.exe || \
-              mise exec -- pwsh -Command "Compress-Archive -Path 'build/go-template.exe' -DestinationPath '$ARCHIVE'"
-          else
-            tar -czf "$ARCHIVE" -C build go-template
-          fi
-
-          echo "archive=$ARCHIVE" >> $GITHUB_OUTPUT
-          echo "Created: $ARCHIVE"
+      - name: Create distribution archives
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONIOENCODING: utf-8
+        run: task build:dist
         shell: bash
 
-      - name: Upload build artifact
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: build-${{ steps.target.outputs.os }}-${{ steps.target.outputs.arch }}
+          name: build-${{ runner.os }}
           path: dist/*
           if-no-files-found: error
           retention-days: 1
