@@ -25,11 +25,10 @@ on:
         default: false
 
 jobs:
-  # Define build matrix for manual workflow dispatch
+  # Define build matrix
   matrix:
     name: Define Matrix
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
     outputs:
       runners: ${{ steps.set-matrix.outputs.runners }}
     steps:
@@ -42,11 +41,10 @@ jobs:
             "windows-latest"
           ]' | tr -d '\n' | tr -s ' ' >> $GITHUB_OUTPUT
 
-  # Build for all platforms (only for manual workflow dispatch)
+  # Build for all platforms
   build:
     name: Build (${{ matrix.runner }})
     needs: [matrix]
-    if: github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         runner: ${{ fromJson(needs.matrix.outputs.runners) }}
@@ -58,13 +56,10 @@ jobs:
       jobs: build
 
   # Publish the release
-  # For workflow_call: artifacts already exist from quality workflow
-  # For workflow_dispatch: artifacts created by build job above
   release:
     name: Publish Release
     runs-on: ubuntu-latest
     needs: [build]
-    if: always() && (needs.build.result == 'success' || needs.build.result == 'skipped')
     permissions:
       contents: write
     steps:
