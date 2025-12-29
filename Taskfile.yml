@@ -7,6 +7,9 @@ vars:
   __TF_MISE_E_PWSH_FILE: 'mise trust; mise exec -- pwsh -NoProfile -ExecutionPolicy Bypass -File'
   __TF_MISE_E_UV_RUN: 'mise trust; mise exec -- uv run'
   # os dependent
+  __TF_COMMAND_WRAPPER:
+    sh: |
+      echo '{{if eq OS "windows"}}powershell -ExecutionPolicy Bypass -Command{{else}}bash -c{{end}}'
   __TF_HEADER_LINE: '=============================================================='
   __TF_SEP: ' '
   __TF_VAR_PREFIX:
@@ -48,7 +51,7 @@ tasks:
       sorted alphabetically. Useful for debugging build issues and verifying
       tool configurations.
 
-      Example:
+      Examples:
         task print:env
 
   # ==========================================================================
@@ -144,12 +147,15 @@ tasks:
           echo "{{.__TF_HEADER_LINE}}"
       - cmd: |
           mkdir -p build
-          {{.__TF_MISE_E}} env GOOS={{.TARGET_OS}} GOARCH={{.TARGET_ARCH}} go build \
+          {{.__TF_MISE_E}} go build \
             {{if eq .GO_BUILD_TYPE "release"}}-ldflags="-s -w"{{end}} \
             -o build/{{.OUTPUT_NAME}} \
             ./cmd/cli
           echo "Built: build/{{.OUTPUT_NAME}}"
     desc: 'Build for a specific OS/ARCH target'
+    env:
+      GOARCH: '{{.TARGET_ARCH}}'
+      GOOS: '{{.TARGET_OS}}'
     requires:
       vars: [TARGET_OS, TARGET_ARCH]
     status:
@@ -810,13 +816,19 @@ tasks:
           GO_BUILD_TYPE: 'debug'
       - cmd: |
           {{.__TF_MISE_E}} gotestsum --format testname -- -race -coverprofile=coverage.out ./...
+        platforms: [darwin, linux]
+      - cmd: |
+          {{.__TF_MISE_E}} gotestsum --format testname -- -coverprofile=coverage.out ./...
+        platforms: [windows]
       - task: test:gen-coverage
     desc: 'Run tests with coverage'
     summary: |
       Run tests with coverage
 
       Builds the application in debug mode, runs all tests with race
-      detection enabled, and generates a coverage report.
+      detection enabled (Unix only), and generates a coverage report.
+
+      Note: Race detection is disabled on Windows as it requires CGO.
 
       Output:
         - coverage.out  - Coverage data file
