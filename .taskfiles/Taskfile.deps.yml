@@ -1,0 +1,223 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# ============================================================================
+# Dependency Management Tasks
+# ============================================================================
+# This file contains tasks for managing project dependencies (mise, npm, uv).
+# It should be synced using `task sync:from:generic`.
+# ============================================================================
+version: '3'
+
+tasks:
+  # ==========================================================================
+  # Dependency Sync (Install)
+  # ==========================================================================
+
+  sync:
+    desc: 'Install all project dependencies'
+    summary: |
+      Install all project dependencies
+
+      Installs all dependencies in order:
+        1. Mise tools (compilers, runtimes, build systems)
+        2. Node.js packages (linters, formatters)
+        3. Python packages (build scripts, docs)
+
+      Run this after cloning the repository.
+
+      Examples:
+        task deps:sync
+    cmds:
+      - task: sync:mise
+      - task: sync:npm
+      - task: sync:uv
+
+  sync:mise:
+    desc: 'Install Mise dependencies'
+    summary: |
+      Install Mise tool dependencies
+
+      Installs all tools defined in .mise.toml including
+      compilers, build systems, and development tools.
+
+      Examples:
+        task deps:sync:mise
+    cmds:
+      - |
+        echo "📦 Installing Mise dependencies..."
+        touch mise.lock
+        mise trust && mise install --yes
+        echo "✓ Mise environment ready"
+
+  sync:npm:
+    desc: 'Install NodeJs dependencies'
+    summary: |
+      Install Node.js dependencies
+
+      Installs npm packages from package.json and sets up
+      Husky git hooks.
+
+      Examples:
+        task deps:sync:npm
+    cmds:
+      - |
+        echo "📦 Installing NodeJs dependencies..."
+        {{.__TF_MISE_E}} npm install
+        {{.__TF_MISE_E}} npx husky
+        echo "✓ NodeJs environment ready"
+
+  sync:uv:
+    desc: 'Install Python dependencies'
+    summary: |
+      Install Python dependencies
+
+      Creates a virtual environment and installs packages
+      from pyproject.toml using uv.
+
+      Examples:
+        task deps:sync:uv
+    cmds:
+      - |
+        echo "📦 Installing Python dependencies..."
+        {{.__TF_MISE_E}} uv sync
+        echo "✓ Python environment ready"
+
+  # ==========================================================================
+  # Dependency Clean
+  # ==========================================================================
+
+  clean:
+    desc: 'Clean all project dependencies'
+    summary: |
+      Clean all project dependencies
+
+      Removes all installed dependencies:
+        - Mise tool installations
+        - Node.js node_modules
+        - Python virtual environment
+
+      Examples:
+        task deps:clean
+    cmds:
+      - task: clean:mise
+      - task: clean:npm
+      - task: clean:uv
+
+  clean:mise:
+    desc: 'Clean Mise dependencies'
+    summary: |
+      Clean Mise tool installations
+
+      Removes all tools installed by Mise from the global
+      installation directory.
+
+      Examples:
+        task deps:clean:mise
+    cmds:
+      - echo "🧹 Cleaning Mise dependencies..."
+      - cmd: |
+          rm -rf \
+            ~/.local/share/mise/installs \
+            ~/AppData/mise/installs
+      - echo "✓ Mise environment cleaned"
+
+  clean:npm:
+    desc: 'Clean NodeJs dependencies'
+    summary: |
+      Clean Node.js dependencies
+
+      Removes node_modules directory and package-lock.json.
+
+      Examples:
+        task deps:clean:npm
+    cmds:
+      - |
+        echo "🧹 Cleaning NodeJs dependencies..."
+        rm -rf node_modules package-lock.json
+        echo "✓ NodeJs environment cleaned"
+
+  clean:uv:
+    desc: 'Clean Python dependencies'
+    summary: |
+      Clean Python dependencies
+
+      Removes the virtual environment and uv lock file.
+
+      Examples:
+        task deps:clean:uv
+    cmds:
+      - |
+        echo "🧹 Cleaning Python dependencies..."
+        rm -rf .venv uv.lock
+        echo "✓ Python environment cleaned"
+
+  # ==========================================================================
+  # Dependency Refresh (Update)
+  # ==========================================================================
+
+  refresh:
+    desc: 'Refresh all project dependencies'
+    summary: |
+      Update all project dependencies
+
+      Updates all dependencies to their latest compatible versions:
+        1. Mise tools
+        2. Node.js packages
+        3. Python packages
+
+      Examples:
+        task deps:refresh
+    cmds:
+      - task: refresh:mise
+      - task: refresh:npm
+      - task: refresh:uv
+
+  refresh:mise:
+    desc: 'Refresh all Mise packages (update dependencies)'
+    summary: |
+      Update Mise tools to latest versions
+
+      Upgrades all Mise-managed tools to their latest versions
+      as allowed by .mise.toml constraints.
+
+      Examples:
+        task deps:refresh:mise
+    cmds:
+      - |
+        echo "🔄 Refreshing Mise packages..."
+        touch mise.lock
+        mise trust && mise upgrade
+        echo "✓ Packages refreshed"
+
+  refresh:npm:
+    desc: 'Refresh all NodeJs packages (update dependencies)'
+    summary: |
+      Update Node.js packages to latest versions
+
+      Shows outdated packages, updates them, and runs
+      security audit fixes.
+
+      Examples:
+        task deps:refresh:npm
+    cmds:
+      - |
+        echo "🔄 Refreshing NodeJs packages..."
+        {{.__TF_MISE_E}} npm outdated \
+          && {{.__TF_MISE_E}} npm update \
+          && {{.__TF_MISE_E}} npm audit fix
+        echo "✓ Packages refreshed"
+
+  refresh:uv:
+    desc: 'Refresh all Python packages (update dependencies)'
+    summary: |
+      Update Python packages to latest versions
+
+      Updates all Python packages to their latest versions
+      as allowed by pyproject.toml constraints.
+
+      Examples:
+        task deps:refresh:uv
+    cmds:
+      - |
+        echo "🔄 Refreshing Python packages..."
+        {{.__TF_MISE_E}} uv sync --upgrade
+        echo "✓ Packages refreshed"

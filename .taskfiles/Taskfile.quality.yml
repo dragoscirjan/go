@@ -1,0 +1,489 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# ============================================================================
+# Code Quality Tasks (Format, Lint)
+# ============================================================================
+# This file contains tasks for formatting and linting code across multiple
+# languages. It should be synced using `task sync:from:generic`.
+# ============================================================================
+version: '3'
+
+tasks:
+  # ==========================================================================
+  # Aggregated Format Tasks
+  # ==========================================================================
+
+  format:
+    desc: 'Format code and fix issues'
+    summary: |
+      Format all code in the project
+
+      Runs all formatters in sequence:
+        - Prettier for JSON, YAML, Markdown, TOML
+        - Ruff for Python files
+
+      Examples:
+        task format
+    cmds:
+      - task: format:prettier
+      - task: format:ruff
+      - cmd: echo "✅ Code format completed"
+
+  format:check:
+    desc: 'Check code formatting without fixing'
+    summary: |
+      Check code formatting without making changes
+
+      Verifies all code is properly formatted without modifying files.
+      Useful for CI pipelines to enforce formatting standards.
+
+      Examples:
+        task format:check
+    cmds:
+      - task: format:check:prettier
+      - task: format:check:ruff
+      - cmd: echo "✅ Code format check completed"
+
+  # ==========================================================================
+  # Aggregated Lint Tasks
+  # ==========================================================================
+
+  lint:
+    desc: 'Run linter and fix issues'
+    summary: |
+      Run all linters and fix issues
+
+      Runs all linters in sequence with auto-fix enabled:
+        - ESLint for JSON, YAML, Markdown
+        - Pylint for Python files
+        - PSScriptAnalyzer for PowerShell files
+        - ShellCheck for shell scripts
+
+      Examples:
+        task lint
+    cmds:
+      - task: lint:eslint
+      - task: lint:pylint
+      - task: lint:pwshlint
+      - task: lint:shlint
+      - cmd: echo "✅ Linting completed"
+
+  lint:check:
+    desc: 'Run linter without fixing'
+    summary: |
+      Run all linters without fixing issues
+
+      Checks code for linting issues without modifying files.
+      Useful for CI pipelines to enforce coding standards.
+
+      Examples:
+        task lint:check
+    cmds:
+      - task: lint:check:eslint
+      - task: lint:check:pylint
+      - task: lint:check:pwshlint
+      - task: lint:check:shlint
+      - cmd: echo "✅ Linting check completed"
+
+  lint-staged:
+    desc: 'Run linter on staged files and fix issues'
+    summary: |
+      Run linters on git staged files only
+
+      Runs appropriate linters on files staged for commit.
+      Used by pre-commit hooks for fast feedback.
+
+      Examples:
+        task lint-staged
+    cmds:
+      - |
+        {{.__TF_MISE_E}} npx -y lint-staged
+    silent: true
+
+  # ==========================================================================
+  # Prettier (JSON, YAML, Markdown, TOML)
+  # ==========================================================================
+
+  prettier:
+    desc: 'Run Prettier'
+    summary: |
+      Run Prettier with custom arguments
+
+      Internal task for running Prettier. Use format:prettier or
+      format:check:prettier instead.
+
+      Variables:
+        CLI_ARGS: Arguments to pass to Prettier
+
+      Examples:
+        task prettier CLI_ARGS="--write ."
+        task prettier CLI_ARGS="--check ."
+    cmds:
+      - |
+        {{.__TF_MISE_E}} npx prettier {{.CLI_ARGS}}
+      - echo "- ✅ prettier format completed"
+    silent: true
+    sources:
+      - '**/*.{json,md,toml,yaml,yml}'
+
+  format:prettier:
+    desc: 'Format code using Prettier'
+    summary: |
+      Format configuration files using Prettier
+
+      Formats JSON, YAML, Markdown, and TOML files
+      using Prettier with the project's configuration.
+
+      Examples:
+        task format:prettier
+    cmds:
+      - task: prettier
+        vars:
+          CLI_ARGS: '--write .'
+    silent: true
+
+  format:check:prettier:
+    desc: 'Check code formatting using Prettier'
+    summary: |
+      Check Prettier formatting without fixing
+
+      Verifies configuration files are properly formatted.
+      Exits with error if any files need formatting.
+
+      Examples:
+        task format:check:prettier
+    cmds:
+      - task: prettier
+        vars:
+          CLI_ARGS: '--check .'
+      - echo "- ✅ prettier format check completed"
+    silent: true
+
+  # ==========================================================================
+  # ESLint (JSON, YAML, Markdown)
+  # ==========================================================================
+
+  eslint:
+    desc: 'Run ESLint'
+    summary: |
+      Run ESLint with custom arguments
+
+      Internal task for running ESLint. Use lint:eslint or
+      lint:check:eslint instead.
+
+      Variables:
+        CLI_ARGS: Arguments to pass to ESLint
+
+      Examples:
+        task eslint CLI_ARGS="--fix ."
+        task eslint CLI_ARGS="."
+    cmds:
+      - |
+        {{.__TF_MISE_E}} npx eslint {{.CLI_ARGS}}
+    silent: true
+    sources:
+      - '**/*.{json,md,toml,yaml,yml}'
+
+  lint:eslint:
+    desc: 'Lint code using ESLint'
+    summary: |
+      Lint configuration files using ESLint
+
+      Analyzes JSON, YAML, Markdown files for issues and
+      automatically fixes what it can.
+
+      Examples:
+        task lint:eslint
+    cmds:
+      - task: eslint
+        vars:
+          CLI_ARGS: '--fix .'
+      - echo "- ✅ eslint lint completed"
+    silent: true
+
+  lint:check:eslint:
+    desc: 'Check code using ESLint'
+    summary: |
+      Check ESLint without fixing
+
+      Analyzes configuration files and reports issues.
+
+      Examples:
+        task lint:check:eslint
+    cmds:
+      - task: eslint
+        vars:
+          CLI_ARGS: '.'
+      - echo "- ✅ eslint lint check completed"
+    silent: true
+
+  # ==========================================================================
+  # Ruff (Python Formatting)
+  # ==========================================================================
+
+  ruff:
+    desc: 'Run Ruff'
+    summary: |
+      Run Ruff with custom arguments
+
+      Internal task for running Ruff. Use format:ruff or
+      lint tasks instead.
+
+      Variables:
+        CLI_ARGS: Arguments to pass to Ruff
+
+      Examples:
+        task ruff CLI_ARGS="format ."
+        task ruff CLI_ARGS="format --check ."
+    cmds:
+      - |
+        {{.__TF_MISE_E_UV_RUN}} ruff {{.CLI_ARGS}}
+    silent: true
+    sources:
+      - '**/*.py'
+
+  format:ruff:
+    aliases: [format:py, format:python]
+    desc: 'Format Python code using Ruff'
+    summary: |
+      Format Python code using Ruff
+
+      Formats all Python files using Ruff formatter with the
+      project's pyproject.toml configuration.
+
+      Aliases: format:py, format:python
+
+      Examples:
+        task format:ruff
+        task format:py
+    cmds:
+      - task: ruff
+        vars:
+          CLI_ARGS: 'format .'
+      - echo "- ✅ ruff format completed"
+    silent: true
+
+  format:check:ruff:
+    aliases: [format:check:py, format:check:python]
+    desc: 'Check Python code formatting using Ruff'
+    summary: |
+      Check Python code formatting without fixing
+
+      Verifies Python files are properly formatted using Ruff.
+      Exits with error if any files need formatting.
+
+      Aliases: format:check:py, format:check:python
+
+      Examples:
+        task format:check:ruff
+        task format:check:py
+    cmds:
+      - task: ruff
+        vars:
+          CLI_ARGS: 'format --check .'
+      - echo "- ✅ ruff format check completed"
+    silent: true
+
+  # ==========================================================================
+  # Pylint (Python Linting)
+  # ==========================================================================
+
+  pylint:
+    desc: 'Run pylint'
+    summary: |
+      Run Pylint with custom arguments
+
+      Internal task for running Pylint. Use lint:pylint instead.
+
+      Variables:
+        CLI_ARGS: Arguments to pass to Pylint
+
+      Examples:
+        task pylint CLI_ARGS="."
+    cmds:
+      - |
+        {{.__TF_MISE_E_UV_RUN}} pylint {{.CLI_ARGS}}
+    silent: true
+    sources:
+      - '**/*.py'
+
+  lint:pylint:
+    aliases: [lint:py, lint:python]
+    desc: 'Lint Python scripts using pylint'
+    summary: |
+      Lint Python code using Pylint
+
+      Runs pylint on all Python files.
+
+      Aliases: lint:py, lint:python
+
+      Examples:
+        task lint:pylint
+        task lint:py
+    cmds:
+      - task: pylint
+        vars:
+          CLI_ARGS: '.'
+      - echo "- ✅ pylint lint completed"
+    silent: true
+
+  lint:check:pylint:
+    aliases: [lint:check:py, lint:check:python]
+    desc: 'Check Python scripts using pylint'
+    summary: |
+      Check Python code using Pylint without fixing
+
+      Analyzes Python files and reports issues.
+
+      Aliases: lint:check:py, lint:check:python
+
+      Examples:
+        task lint:check:pylint
+        task lint:check:py
+    cmds:
+      - task: lint:pylint
+      - echo "- ✅ pylint lint check completed"
+    silent: true
+
+  # ==========================================================================
+  # PSScriptAnalyzer (PowerShell Linting)
+  # ==========================================================================
+
+  pwshlint_py:
+    desc: 'Run PSScriptAnalyzer'
+    summary: |
+      Run PSScriptAnalyzer with custom arguments
+
+      Internal task for running PSScriptAnalyzer via Python wrapper.
+      Use lint:pwshlint instead.
+
+      Variables:
+        CLI_ARGS: Arguments to pass to pwshlint.py
+
+      Examples:
+        task pwshlint_py CLI_ARGS="--fix"
+    cmds:
+      - |
+        {{.__TF_MISE_E_UV_RUN}} .scripts/pwshlint.py {{.CLI_ARGS}}
+    silent: true
+    sources:
+      - '**/*.ps1'
+
+  lint:pwshlint:
+    aliases: [lint:pwsh]
+    desc: 'Lint PowerShell scripts using PSScriptAnalyzer'
+    summary: |
+      Lint PowerShell scripts using PSScriptAnalyzer
+
+      Runs PSScriptAnalyzer with auto-fix on all PowerShell scripts.
+
+      Aliases: lint:pwsh
+
+      Examples:
+        task lint:pwshlint
+        task lint:pwsh
+    cmds:
+      - task: pwshlint_py
+        vars:
+          CLI_ARGS: '--fix'
+      - echo "- ✅ pwsh lint completed"
+    silent: true
+
+  lint:check:pwshlint:
+    aliases: [lint:check:pwsh]
+    desc: 'Check PowerShell scripts using PSScriptAnalyzer'
+    summary: |
+      Check PowerShell scripts without fixing
+
+      Analyzes PowerShell files and reports issues.
+
+      Aliases: lint:check:pwsh
+
+      Examples:
+        task lint:check:pwshlint
+        task lint:check:pwsh
+    cmds:
+      - task: pwshlint_py
+      - echo "- ✅ pwsh lint completed"
+    silent: true
+
+  # ==========================================================================
+  # ShellCheck (Shell Script Linting)
+  # ==========================================================================
+
+  shlint_py:
+    desc: 'Run ShellCheck'
+    summary: |
+      Run ShellCheck with custom arguments
+
+      Internal task for running ShellCheck via Python wrapper.
+      Use lint:shlint instead.
+
+      Variables:
+        CLI_ARGS: Arguments to pass to shlint.py
+
+      Examples:
+        task shlint_py CLI_ARGS="--fix"
+    cmds:
+      - cmd: |
+          {{.__TF_MISE_E}} python .scripts/shlint.py {{.CLI_ARGS}}
+        platforms: [darwin, linux, windows]
+    silent: true
+    sources:
+      - '**/*.sh'
+
+  lint:shlint:
+    aliases: [lint:bash, lint:sh]
+    desc: 'Lint shell scripts using ShellCheck'
+    summary: |
+      Lint shell scripts using ShellCheck
+
+      Runs ShellCheck with auto-fix on all Bash/shell scripts.
+
+      Aliases: lint:sh, lint:bash
+
+      Examples:
+        task lint:shlint
+        task lint:bash
+    cmds:
+      - task: shlint_py
+        vars:
+          CLI_ARGS: '--fix'
+      - echo "- ✅ bash lint completed"
+    silent: true
+
+  lint:check:shlint:
+    aliases: [lint:check:bash, lint:check:sh]
+    desc: 'Check shell scripts using ShellCheck'
+    summary: |
+      Check shell scripts without fixing
+
+      Analyzes shell scripts and reports issues.
+
+      Aliases: lint:check:sh, lint:check:bash
+
+      Examples:
+        task lint:check:shlint
+        task lint:check:sh
+    cmds:
+      - task: shlint_py
+      - echo "- ✅ bash lint completed"
+    silent: true
+
+  # ==========================================================================
+  # Code Duplication Check
+  # ==========================================================================
+
+  duplicate-check:
+    desc: 'Check for duplicate code using jscpd'
+    summary: |
+      Check for duplicate code using jscpd
+
+      Scans the codebase for copy-pasted code blocks and
+      generates a report. Updates the duplication badge.
+
+      Examples:
+        task duplicate-check
+    cmds:
+      - |
+        {{.__TF_MISE_E}} npm run duplicate-check
+      - git add .jscpd/jscpd-badge.svg 2>/dev/null || true
