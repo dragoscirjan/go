@@ -11,7 +11,7 @@ inputs:
   cache-version:
     description: 'Cache version suffix - increment to invalidate all caches'
     required: false
-    default: '001'
+    default: '002'
 runs:
   using: 'composite'
   steps:
@@ -53,7 +53,7 @@ runs:
       with:
         key: mise-downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock') }}-${{ inputs.cache-version }}
         restore-keys: |
-          mise-downloads-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          mise-downloads-${{ runner.os }}-${{ runner.arch }}-
         path: |
           ~/.local/share/mise/downloads
 
@@ -64,7 +64,7 @@ runs:
       with:
         key: mise-downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock') }}-${{ inputs.cache-version }}
         restore-keys: |
-          mise-downloads-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          mise-downloads-${{ runner.os }}-${{ runner.arch }}-
         path: |
           ~/AppData/Local/mise/downloads
 
@@ -79,7 +79,7 @@ runs:
       with:
         key: mise-installs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock') }}-${{ inputs.cache-version }}
         restore-keys: |
-          mise-installs-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          mise-installs-${{ runner.os }}-${{ runner.arch }}-
         path: |
           ~/.local/share/mise/installs/github-*
           ~/.local/share/mise/installs/node
@@ -94,7 +94,7 @@ runs:
       with:
         key: mise-installs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock') }}-${{ inputs.cache-version }}
         restore-keys: |
-          mise-installs-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          mise-installs-${{ runner.os }}-${{ runner.arch }}-
         path: |
           ~/AppData/Local/mise/installs/github-*
           ~/AppData/Local/mise/installs/node
@@ -128,7 +128,7 @@ runs:
       with:
         key: venv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock') }}-${{ inputs.cache-version }}
         restore-keys: |
-          venv-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          venv-${{ runner.os }}-${{ runner.arch }}-
         path: .venv
 
     # ==========================================================================
@@ -140,7 +140,7 @@ runs:
       with:
         key: node-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}-${{ inputs.cache-version }}
         restore-keys: |
-          node-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          node-${{ runner.os }}-${{ runner.arch }}-
         path: node_modules
 
     # ==========================================================================
@@ -182,6 +182,10 @@ runs:
       shell: bash
       env:
         GITHUB_API_TOKEN: ${{ inputs.github-token }}
+        MISE_GITHUB_TOKEN: ${{ inputs.github-token }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        MISE_GITHUB_GITHUB_ATTESTATIONS: '0'
+        MISE_GITHUB_SLSA: '0'
         MISE_HTTP_TIMEOUT: 600
         PYTHONIOENCODING: utf-8
       run: |

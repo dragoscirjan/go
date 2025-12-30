@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+# ============================================================================
+# Common Variables and Utility Tasks
+# ============================================================================
+# This file contains shared variables and utility tasks used across all
+# templ-project templates. It should be synced using `task sync:from:generic`.
+# ============================================================================
+version: '3'
+
+vars:
+  # ==========================================================================
+  # Mise Execution Wrappers
+  # ==========================================================================
+  # These variables provide consistent mise execution across platforms.
+  # Use these instead of raw mise commands for cross-platform compatibility.
+  # ==========================================================================
+  __TF_MISE_E: 'mise trust; mise exec --'
+  __TF_MISE_E_PWSH: 'mise trust; mise exec -- pwsh -NoProfile -ExecutionPolicy Bypass -Command'
+  __TF_MISE_E_PWSH_FILE: 'mise trust; mise exec -- pwsh -NoProfile -ExecutionPolicy Bypass -File'
+  __TF_MISE_E_UV_RUN: 'mise trust; mise exec -- uv run'
+
+  # ==========================================================================
+  # OS-Dependent Variables
+  # ==========================================================================
+  __TF_COMMAND_WRAPPER:
+    sh: |
+      echo '{{if eq OS "windows"}}powershell -ExecutionPolicy Bypass -Command{{else}}bash -c{{end}}'
+  __TF_HEADER_LINE: '=============================================================='
+  __TF_SEP: ' '
+  __TF_VAR_PREFIX:
+    sh: |
+      echo "{{if eq OS "windows"}}\${{else}}{{end}}"
+
+tasks:
+  # ==========================================================================
+  # Utility Tasks
+  # ==========================================================================
+
+  print:env:
+    desc: 'Print current build environment variables'
+    summary: |
+      Print current build environment variables
+
+      Displays all environment variables available during the build process,
+      sorted alphabetically. Useful for debugging build issues and verifying
+      tool configurations.
+
+      Examples:
+        task print:env
+    cmds:
+      - cmd: |
+          {{.__TF_MISE_E}} env | sort
+        platforms: [darwin, linux]
+      - cmd: |
+          {{.__TF_MISE_E}} {{ .__TF_SEP
+            }}pwsh -Command '$BashPath=(Get-Command bash -ErrorAction SilentlyContinue).Path;{{ .__TF_SEP
+              }}if ($BashPath) { & $BashPath -c "env | sort" }{{ .__TF_SEP
+              }}else { Get-ChildItem "Env:" | Sort-Object Name | ForEach-Object { "$($_.Name)=$($_.Value)" } }'
+        platforms: [windows]
