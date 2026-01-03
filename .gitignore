@@ -78,3 +78,6 @@ pids
 
 # TypeDoc
 docs-html/
+
+# PSScriptAnalyzer install script (generated)
+.github/scripts/install-psscriptanalyzer.ps1

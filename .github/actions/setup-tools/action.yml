@@ -69,8 +69,7 @@ runs:
           ~/AppData/Local/mise/downloads
 
     # ==========================================================================
-    # Cache Restore - Mise Installs (smaller tools only, excludes Rust toolchain)
-    # Rust toolchain is cached separately
+    # Cache Restore - Mise Installs
     # ==========================================================================
     - name: Restore Mise installs cache (Unix)
       id: mise-installs-cache-unix
@@ -81,11 +80,7 @@ runs:
         restore-keys: |
           mise-installs-${{ runner.os }}-${{ runner.arch }}-
         path: |
-          ~/.local/share/mise/installs/github-*
-          ~/.local/share/mise/installs/node
-          ~/.local/share/mise/installs/python
-          ~/.local/share/mise/installs/uv
-          !~/.local/share/mise/installs/http-*
+          ~/.local/share/mise/installs
 
     - name: Restore Mise installs cache (Windows)
       id: mise-installs-cache-windows
@@ -96,28 +91,21 @@ runs:
         restore-keys: |
           mise-installs-${{ runner.os }}-${{ runner.arch }}-
         path: |
-          ~/AppData/Local/mise/installs/github-*
-          ~/AppData/Local/mise/installs/node
-          ~/AppData/Local/mise/installs/python
-          ~/AppData/Local/mise/installs/uv
-          !~/AppData/Local/mise/installs/http-*
+          ~/AppData/Local/mise/installs
 
     # ==========================================================================
-    # Cache Restore - Rust toolchain and Cargo
+    # Cache Restore - Go modules
     # ==========================================================================
-    - name: Restore Rust toolchain cache
-      id: rust-cache
+    - name: Restore Go modules cache
+      id: go-cache
       uses: actions/cache/restore@v4
       with:
-        key: rust-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock', '**/Cargo.lock') }}-${{ inputs.cache-version }}
+        key: go-mod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}-${{ inputs.cache-version }}
         restore-keys: |
-          rust-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-version }}-
+          go-mod-${{ runner.os }}-${{ runner.arch }}-
         path: |
-          ~/.cargo/bin
-          ~/.cargo/registry
-          ~/.cargo/git
-          ~/.rustup/toolchains
-          ~/.rustup/update-hashes
+          ~/go/pkg/mod
+          ~/.cache/go-build
 
     # ==========================================================================
     # Cache Restore - Python venv
@@ -195,12 +183,12 @@ runs:
 
         task deps:$ACTION:mise
 
-        # Only sync rust if rust cache missed
-        if [ "${{ steps.rust-cache.outputs.cache-hit }}" != "true" ]; then
-          echo "Rust cache miss - running rust sync"
-          task deps:$ACTION:rust
+        # Only sync go if go modules cache missed
+        if [ "${{ steps.go-cache.outputs.cache-hit }}" != "true" ]; then
+          echo "Go modules cache miss - running go sync"
+          task deps:$ACTION:go
         else
-          echo "Rust cache hit - skipping rust sync"
+          echo "Go modules cache hit - skipping go sync"
         fi
 
         # Only sync npm if node_modules cache missed
@@ -251,11 +239,7 @@ runs:
       with:
         key: mise-installs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock') }}-${{ inputs.cache-version }}
         path: |
-          ~/.local/share/mise/installs/github-*
-          ~/.local/share/mise/installs/node
-          ~/.local/share/mise/installs/python
-          ~/.local/share/mise/installs/uv
-          !~/.local/share/mise/installs/http-*
+          ~/.local/share/mise/installs
 
     - name: Save Mise installs cache (Windows)
       if: |
@@ -265,23 +249,16 @@ runs:
       with:
         key: mise-installs-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock') }}-${{ inputs.cache-version }}
         path: |
-          ~/AppData/Local/mise/installs/github-*
-          ~/AppData/Local/mise/installs/node
-          ~/AppData/Local/mise/installs/python
-          ~/AppData/Local/mise/installs/uv
-          !~/AppData/Local/mise/installs/http-*
+          ~/AppData/Local/mise/installs
 
-    - name: Save Rust toolchain cache
-      if: steps.rust-cache.outputs.cache-hit != 'true'
+    - name: Save Go modules cache
+      if: steps.go-cache.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
       with:
-        key: rust-toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock', '**/Cargo.lock') }}-${{ inputs.cache-version }}
+        key: go-mod-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.sum') }}-${{ inputs.cache-version }}
         path: |
-          ~/.cargo/bin
-          ~/.cargo/registry
-          ~/.cargo/git
-          ~/.rustup/toolchains
-          ~/.rustup/update-hashes
+          ~/go/pkg/mod
+          ~/.cache/go-build
 
     - name: Save Python venv cache
       if: steps.venv-cache.outputs.cache-hit != 'true'
