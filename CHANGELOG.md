@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 (2026-01-03)
+
+### Bug Fixes
+
+* fixing deps:sync:mise lock creator ([5f55753](https://github.com/templ-project/go/commit/5f55753d0cbb2bb9bbe91281abc5686fb802f552))
+
 ## 0.2.1 (2025-12-26)
 
 ### Bug Fixes
